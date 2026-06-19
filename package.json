@@ -1,0 +1,35 @@
+{
+  "name": "serial-tool",
+  "version": "1.0.0",
+  "description": "串口调试助手 - Web 版，基于 Node.js + serialport",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "serial-tool": "./bin/cli.js"
+  },
+  "scripts": {
+    "start": "node --import tsx src/index.ts",
+    "dev": "node --import tsx --watch src/index.ts",
+    "test": "npx playwright test",
+    "test:ui": "npx playwright test --ui",
+    "test:headed": "npx playwright test --headed"
+  },
+  "keywords": [
+    "serial",
+    "serial-port",
+    "uart",
+    "debug",
+    "串口"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "serialport": "^13.0.0",
+    "tsx": "^4.0.0",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@types/node": "latest",
+    "@types/ws": "^8.18.1"
+  }
+}
