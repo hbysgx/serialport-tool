@@ -1,6 +1,6 @@
 {
   "name": "serialport-tool",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "串口调试助手 Web 版 - 基于 Node.js + serialport，浏览器端操作串口",
   "type": "module",
   "main": "dist/index.js",
