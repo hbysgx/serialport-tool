@@ -1,5 +1,5 @@
 /**
- * 串口管理 - 基于 serialport 库 (动态导入,兼容 Bun)
+ * 串口管理 - 基于 serialport 库 (动态导入,兼容 Node.js)
  */
 
 import { EventEmitter } from "events";
