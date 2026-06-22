@@ -1,5 +1,5 @@
 /**
- * 应用配置管理 - 对应原 SerialMate Core/AppConfig.swift
+ * 应用配置管理
  * 持久化到 ~/.serial_tool/config.json
  */
 

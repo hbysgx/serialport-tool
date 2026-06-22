@@ -1,5 +1,5 @@
 /**
- * 会话存储 - 对应原 SerialMate Core/SessionStore.swift
+ * 会话存储
  * 会话保存到 ~/.serial_tool/sessions/<id>.json
  */
 

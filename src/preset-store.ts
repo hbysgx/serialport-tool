@@ -1,5 +1,5 @@
 /**
- * 预设指令管理 - 对应原 SerialMate Core/PresetStore.swift
+ * 预设指令管理
  * 持久化到 ~/.serial_tool/presets.json
  */
 

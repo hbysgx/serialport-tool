@@ -4,7 +4,7 @@
 
 ![bun](https://img.shields.io/badge/Bun-1.0+-f9f1e1?logo=bun) ![license](https://img.shields.io/badge/license-MIT-green)
 
-复刻自 [SerialMate](https://github.com) (macOS 原生 SwiftUI 串口调试工具)，改造为 Web 版：
+串口调试助手 Web 版：
 - 后端使用 **Bun.js** + `serialport` 库管理串口
 - 前端为纯 HTML/CSS/JS SPA，在浏览器中运行
 - 通过 WebSocket 实现实时串口数据收发
@@ -40,10 +40,10 @@ bun run dev
 
 ```bash
 # 全局安装
-npm install -g serial-tool
+npm install -g serialport-tool
 
 # 运行
-serial-tool
+serialport-tool
 ```
 
 ## 🖥 界面布局
@@ -116,7 +116,7 @@ serial_tool/
 
 ## 🎯 核心使用流程
 
-1. 启动 `serial-tool` → 浏览器自动打开
+1. 启动 `serialport-tool` → 浏览器自动打开
 2. 左侧点 `＋` 新建会话（如"我的ESP32"）
 3. 顶栏选择串口设备 + 波特率 115200
 4. 点 **连接**

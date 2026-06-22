@@ -1074,7 +1074,7 @@ function exportLogs() {
     }
     const blob = new Blob([text],{type:'text/plain'});
     const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`serial-tool-log-${new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)}.txt`; a.click();
+    a.download=`serialport-tool-log-${new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)}.txt`; a.click();
     toast('日志已导出', 'success');
   }).catch(console.error);
 }
