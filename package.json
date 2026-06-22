@@ -10,6 +10,7 @@
   "files": [
     "dist",
     "bin",
+    "asserts",
     "README.md",
     "LICENSE"
   ],
