@@ -25,13 +25,13 @@
 
 ```bash
 # 安装依赖
-bun install
+npm install
 
 # 启动 (自动打开浏览器)
-bun run start
+npm start
 
 # 开发模式 (热重载)
-bun run dev
+npm run dev
 ```
 
 启动后终端显示地址，浏览器会自动打开 `http://localhost:8765`。
