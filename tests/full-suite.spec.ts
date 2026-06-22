@@ -1,5 +1,5 @@
 /**
- * Serial Tool — 完整 UI 自动化测试
+ * Serialport Tool — 完整 UI 自动化测试
  * 运行: npm test
  *
  * 覆盖范围:
@@ -53,14 +53,14 @@ test.describe('页面加载', () => {
   test('服务器返回 HTML', async ({ page }) => {
     const res = await page.goto('/');
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveTitle(/Serial Tool/);
+    await expect(page).toHaveTitle(/Serialport Tool/);
   });
 
   test('所有核心 DOM 元素存在', async ({ page }) => {
     await page.goto('/');
-    for (const sel of ['#session-sidebar','#session-tree','#connection-bar',
-      '#device-select','#baudrate-select','#preset-panel','#preset-list',
-      '#receive-area','#receive-log','#send-area','#send-input','#empty-state']) {
+    for (const sel of ['#session-sidebar', '#session-tree', '#connection-bar',
+      '#device-select', '#baudrate-select', '#preset-panel', '#preset-list',
+      '#receive-area', '#receive-log', '#send-area', '#send-input', '#empty-state']) {
       await expect(page.locator(sel)).toBeAttached();
     }
   });
@@ -381,14 +381,14 @@ test.describe('连接设置', () => {
 
   test('波特率下拉含所有标准值', async ({ page }) => {
     const opts = await page.locator('#baudrate-select option').allTextContents();
-    for (const v of ['1200','9600','115200','921600']) expect(opts).toContain(v);
+    for (const v of ['1200', '9600', '115200', '921600']) expect(opts).toContain(v);
   });
 
   test('校验/停止位/流控下拉完整', async ({ page }) => {
     expect(await page.locator('#parity-select option').allTextContents()).toEqual(
-      expect.arrayContaining(['None','Even','Odd']));
+      expect.arrayContaining(['None', 'Even', 'Odd']));
     expect(await page.locator('#stopbits-select option').allTextContents()).toEqual(
-      expect.arrayContaining(['1','2']));
+      expect.arrayContaining(['1', '2']));
   });
 
   test('状态显示"未连接"', async ({ page }) => {

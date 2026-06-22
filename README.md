@@ -138,6 +138,95 @@ sudo dseditgroup -o edit -a $(whoami) -t user _uucp
 sudo usermod -a -G dialout $(whoami)
 ```
 
+## 🚀 npm 发布记录与排障
+
+本项目首次发布到 npm 时遇到过以下问题，后续发版可按这个顺序检查。
+
+### 发布前检查
+
+```bash
+# 构建
+npm run build
+
+# 查看即将发布的文件
+npm pack --dry-run
+
+# 确认当前登录账号
+npm whoami
+
+# 查看包名/版本是否已存在
+npm view serialport-tool version
+```
+
+`npm pack --dry-run` 应只包含运行所需文件，例如 `dist/`、`bin/`、`README.md`、`LICENSE` 和 `package.json`。
+
+### npm cache 权限问题
+
+如果遇到类似错误:
+
+```text
+Your cache folder contains root-owned files
+```
+
+说明本机 `~/.npm` 里有 root 权限文件。可以临时指定一个可写 cache 目录绕过:
+
+```bash
+npm --cache /private/tmp/serial_tool_npm_cache pack --dry-run
+npm --cache /private/tmp/serial_tool_npm_cache publish --access public
+```
+
+也可以按 npm 提示修复 `~/.npm` 的文件所有权。
+
+### bin 字段路径问题
+
+发布时 npm 曾提示:
+
+```text
+"bin[serialport-tool]" script name bin/cli.js was invalid and removed
+```
+
+原因是 `package.json` 中 `bin` 路径写成了 `./bin/cli.js`。应使用 npm 规范化后的写法:
+
+```json
+{
+  "bin": {
+    "serialport-tool": "bin/cli.js"
+  }
+}
+```
+
+如果不修复，发布后的包可能没有 `serialport-tool` 命令入口。
+
+### 2FA 与 token 问题
+
+如果发布时报错:
+
+```text
+Two-factor authentication or granular access token with bypass 2fa enabled is required
+```
+
+需要在 npm 后台创建 granular access token，并确认:
+
+- `Packages and scopes` 有目标包的权限，首次发布新包可选择 all packages
+- 权限为 read and write
+- 勾选 bypass two-factor authentication (2FA)
+
+推荐把 token 写入用户级 npm 配置，后续本机发布会自动使用:
+
+```bash
+npm config set //registry.npmjs.org/:_authToken <npm_token> --location=user
+```
+
+不要把 token 写入项目仓库，也不要提交 `.npmrc`。如果 token 曾经暴露在聊天、日志或截图中，应在 npm 后台撤销后重新生成。
+
+### 首次发布命令
+
+```bash
+npm publish --access public
+```
+
+如果已经持久化 token 到 `~/.npmrc`，直接运行上面的命令即可。
+
 ## 📝 License
 
 MIT
