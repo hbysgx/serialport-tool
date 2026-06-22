@@ -14,7 +14,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --target node18 --out-dir dist --clean --no-config",
+    "build": "tsup src/index.ts --format esm --target node18 --out-dir dist --clean --no-config && mkdir -p dist/public && cp src/public/index.html dist/public/index.html",
     "start": "node --import tsx src/index.ts",
     "dev": "node --import tsx --watch src/index.ts",
     "test": "npx playwright test",
