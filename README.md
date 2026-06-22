@@ -1,11 +1,11 @@
 # Serialport Tool
 
-> 串口调试助手 Web 版 - 基于 Bun.js + serialport，浏览器端操作串口
+> 串口调试助手 Web 版 - 基于 Node.js + serialport，浏览器端操作串口
 
-![bun](https://img.shields.io/badge/Bun-1.0+-f9f1e1?logo=bun) ![license](https://img.shields.io/badge/license-MIT-green)
+![node](https://img.shields.io/badge/Node.js-18+-339933?logo=node.js) ![license](https://img.shields.io/badge/license-MIT-green)
 
 串口调试助手 Web 版：
-- 后端使用 **Bun.js** + `serialport` 库管理串口
+- 后端使用 **Node.js** + `serialport` 库管理串口
 - 前端为纯 HTML/CSS/JS SPA，在浏览器中运行
 - 通过 WebSocket 实现实时串口数据收发
 - **启动时自动打开浏览器**访问对应地址
