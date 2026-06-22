@@ -1,0 +1,27 @@
+# 测试与调试
+tests/
+test-results/
+playwright.config.ts
+playwright-report/
+
+# 编辑器/系统
+.DS_Store
+.idea/
+.vscode/
+
+# Claude 本地配置
+.claude/
+
+# 日志
+*.log
+npm-debug.log*
+
+# 源码（构建产物已发布 dist/）
+src/
+
+# TypeScript 配置
+tsconfig.json
+
+# Git
+.git/
+.gitignore
