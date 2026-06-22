@@ -1,5 +1,5 @@
 /**
- * Serial Tool - 串口调试助手 Web 版
+ * Serialport Tool - 串口调试助手 Web 版
  * 主入口: HTTP 服务器 + WebSocket 实时通信
  */
 
@@ -329,8 +329,8 @@ async function handleMessage(ws: any, msg: WSMessage): Promise<void> {
       case "save_session": {
         const node = activeSessionId
           ? (activeSessionPath
-              ? sessionStore.findByFilePath(currentTree, activeSessionPath)
-              : sessionStore.findBySessionId(currentTree, activeSessionId))
+            ? sessionStore.findByFilePath(currentTree, activeSessionPath)
+            : sessionStore.findBySessionId(currentTree, activeSessionId))
           : null;
         if (node) {
           sessionStore.saveSession(node, appConfig.data, presetStore.groups, logEntries);
@@ -470,7 +470,7 @@ const clients = new Set<any>();
 function broadcast(data: any): void {
   const msg = JSON.stringify(data);
   for (const ws of clients) {
-    try { ws.send(msg); } catch {}
+    try { ws.send(msg); } catch { }
   }
 }
 
@@ -535,7 +535,7 @@ wss.on("connection", (ws) => {
 httpServer.listen(PORT, () => {
   console.log("");
   console.log("╔══════════════════════════════════════╗");
-  console.log("║   🔌 Serial Tool - 串口调试助手      ║");
+  console.log("║   🔌 Serialport Tool - 串口调试助手      ║");
   console.log("║──────────────────────────────────────║");
   console.log(`║   地址: ${ADDR}              ║`);
   console.log("║   按 Ctrl+C 退出                     ║");

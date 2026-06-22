@@ -1,1314 +1,1931 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Serial Tool - 串口调试助手</title>
-<style>
-/* ===== Reset & Base ===== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #f7f7f8; --bg2: #ffffff; --bg3: #f2f2f3;
-  --surface: #ececf1; --surface2: #f9fafb; --border: #e5e5e5;
-  --text: #202123; --text2: #353740; --text3: #8e8ea0;
-  --accent: #10a37f; --accent-soft: #e6f4ef; --accent-border: #b7e1d3;
-  --green: #10a37f; --red: #d92d20; --orange: #b45309; --blue: #2563eb; --purple: #7c3aed;
-  --radius: 6px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
-}
-body {
-  font-family: var(--font); background: var(--bg); color: var(--text);
-  height: 100vh; width: 100vw; overflow: hidden; display: flex;
-}
-button { font-family: var(--font); cursor: pointer; border: none; background: none; color: var(--text2); font-size: 12px; }
-input, select, textarea { font-family: var(--font); }
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d9d9e3; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: #c5c5d2; border: 2px solid transparent; background-clip: content-box; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serialport Tool - 串口调试助手</title>
+  <style>
+    /* ===== Reset & Base ===== */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-/* ===== Layout ===== */
-#app { display: flex; width: 100%; height: 100%; min-height: 0; background: var(--bg); }
-#center-panel { display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0; overflow: hidden; background: var(--bg2); }
+    :root {
+      --bg: #f7f7f8;
+      --bg2: #ffffff;
+      --bg3: #f2f2f3;
+      --surface: #ececf1;
+      --surface2: #f9fafb;
+      --border: #e5e5e5;
+      --text: #202123;
+      --text2: #353740;
+      --text3: #8e8ea0;
+      --accent: #10a37f;
+      --accent-soft: #e6f4ef;
+      --accent-border: #b7e1d3;
+      --green: #10a37f;
+      --red: #d92d20;
+      --orange: #b45309;
+      --blue: #2563eb;
+      --purple: #7c3aed;
+      --radius: 6px;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    }
 
-/* ===== Pane Header ===== */
-.pane-header {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 12px; background: var(--bg2);
-  border-bottom: 1px solid var(--border); min-height: 38px; flex-shrink: 0;
-}
-.pane-header .title { font-size: 12px; font-weight: 650; color: var(--text2); white-space: nowrap; }
-.pane-header .spacer { flex: 1; }
-.pane-footer {
-  display: flex; align-items: center; gap: 8px;
-  padding: 6px 12px; background: var(--surface2); border-top: 1px solid var(--border);
-  font-size: 11px; flex-shrink: 0; min-height: 32px;
-}
-.btn-icon {
-  display: flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 6px;
-  color: var(--text3); font-size: 13px; flex-shrink: 0;
-}
-.btn-icon:hover { background: var(--surface); color: var(--text2); }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      display: flex;
+    }
 
-/* ===== Session Sidebar ===== */
-#session-sidebar {
-  width: 240px; min-width: 100px; max-width: none;
-  display: flex; flex-direction: column;
-  background: var(--surface2); border-right: 1px solid var(--border); overflow: hidden; flex-shrink: 0;
-}
-#session-tree { flex: 1; overflow-y: auto; padding: 6px 4px; min-height: 0; }
-.tree-row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 5px 8px; cursor: pointer; user-select: none;
-  font-size: 12px; white-space: nowrap;
-  border-radius: 6px; margin: 1px 4px; color: var(--text2);
-}
-.tree-row:hover { background: var(--surface); }
-.tree-row.selected { background: var(--accent-soft); color: var(--text); outline: 1px solid var(--accent-border); }
-.tree-row.active { background: #f1f8f5; color: var(--text); }
-.tree-row.selected.active { background: var(--accent-soft); color: var(--text); outline: 1px solid var(--accent-border); }
-.tree-row.active .tree-icon { color: var(--accent); }
-.tree-row .tree-icon { width: 16px; text-align: center; font-size: 12px; color: var(--text3); flex-shrink: 0; }
-.tree-row .tree-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-.tree-row .tree-badge { font-size: 10px; color: var(--accent); flex-shrink: 0; }
-.tree-row input { background: var(--bg2); border: 1px solid var(--accent); color: var(--text); border-radius: 6px; padding: 3px 6px; font-size: 12px; width: 100%; outline: none; box-shadow: 0 0 0 3px rgba(16,163,127,0.12); }
-.tree-row.drag-over { outline: 2px dashed var(--accent); outline-offset: -2px; }
-.empty-tree { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; color: var(--text3); font-size: 13px; gap: 6px; text-align: center; }
+    button {
+      font-family: var(--font);
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text2);
+      font-size: 12px;
+    }
 
-/* ===== Connection Bar ===== */
-#connection-bar {
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  padding: 8px 14px; flex-shrink: 0;
-}
-.conn-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.conn-row + .conn-row { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); }
-.conn-label { font-size: 10px; font-weight: 600; color: var(--text3); white-space: nowrap; }
-.conn-select {
-  background: var(--bg2); color: var(--text); border: 1px solid var(--border);
-  border-radius: 6px; padding: 4px 8px; font-size: 12px; max-width: 170px;
-}
-.conn-select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(16,163,127,0.12); }
-.btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 12px; border-radius: 6px; font-size: 12px;
-  font-weight: 650; transition: all 0.15s; white-space: nowrap;
-}
-.btn-primary { background: var(--accent); color: #ffffff; }
-.btn-primary:hover { background: #0e8f70; }
-.btn-primary:disabled { opacity: 0.45; cursor: default; }
-.btn-danger { background: var(--red); color: #ffffff; }
-.btn-danger:hover { background: #b42318; }
-.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-.status-dot.green { background: var(--green); }
-.status-dot.gray { background: #c5c5d2; }
-.status-text { font-size: 11px; color: var(--text3); white-space: nowrap; }
-.error-bar {
-  background: #fef3f2; color: var(--red); border-top: 1px solid #fee4e2;
-  font-size: 11px; padding: 5px 14px; display: none; align-items: center; gap: 6px;
-}
-.checkbox-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); white-space: nowrap; }
-.checkbox-row input[type="checkbox"] { accent-color: var(--accent); }
+    input,
+    select,
+    textarea {
+      font-family: var(--font);
+    }
 
-/* ===== Preset Panel ===== */
-#preset-panel {
-  width: 260px; min-width: 100px; max-width: none;
-  display: flex; flex-direction: column;
-  background: var(--surface2); border-left: 1px solid var(--border); overflow: hidden; flex-shrink: 0;
-}
-#preset-list { flex: 1; overflow-y: auto; padding: 6px; min-height: 0; }
-.preset-group { margin-bottom: 6px; }
-.preset-group-header {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 7px; border-radius: 6px; cursor: pointer;
-  font-size: 12px; font-weight: 650; color: var(--text2);
-}
-.preset-group-header:hover { background: var(--surface); }
-.preset-cmd {
-  display: flex; align-items: center; gap: 7px;
-  padding: 7px 9px; margin: 3px 0 3px 16px;
-  border-radius: 7px; cursor: pointer; font-size: 11px;
-  background: var(--bg2); border: 1px solid var(--border); transition: all 0.1s;
-}
-.preset-cmd:hover { border-color: var(--accent-border); background: #fbfefd; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-.preset-cmd .cmd-icon { font-size: 11px; flex-shrink: 0; }
-.preset-cmd .cmd-info { flex: 1; min-width: 0; }
-.preset-cmd .cmd-name { font-size: 11px; line-height: 1.35; color: var(--text); }
-.preset-cmd .cmd-payload { font-size: 10px; color: var(--text3); font-family: var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.preset-cmd .cmd-hotkey { font-size: 9px; padding: 1px 5px; background: var(--surface); border-radius: 4px; color: var(--text3); }
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
 
-/* ===== Receive Area ===== */
-#receive-area { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; background: var(--bg2); }
-#receive-log { flex: 1; overflow-y: auto; padding: 8px; background: var(--bg2); font-family: var(--mono); font-size: 12px; min-height: 0; }
-.log-row { display: flex; gap: 8px; padding: 3px 5px; align-items: flex-start; line-height: 1.45; border-radius: 5px; }
-.log-row:hover { background: var(--surface2); }
-.log-ts { color: var(--text3); font-size: 10px; flex-shrink: 0; width: 80px; }
-.log-dir { font-size: 10px; font-weight: 700; flex-shrink: 0; width: 42px; }
-.log-dir.rx { color: var(--blue); }
-.log-dir.tx { color: var(--accent); }
-.log-ascii { color: var(--text); white-space: pre-wrap; word-break: break-all; }
-.log-hex { color: var(--text3); font-size: 10px; }
-.log-mixed { display: flex; flex-direction: column; min-width: 0; }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-/* ===== Send Area ===== */
-#send-area { display: flex; flex-direction: column; flex-shrink: 0; border-top: 1px solid var(--border); background: var(--bg2); }
-#send-input {
-  height: 104px; min-height: 60px; background: var(--bg2); color: var(--text);
-  border: none; padding: 10px 12px; font-family: var(--mono); font-size: 13px;
-  resize: vertical; outline: none;
-}
-#send-input::placeholder { color: var(--text3); }
+    ::-webkit-scrollbar-thumb {
+      background: #d9d9e3;
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
 
-/* Hidden bar when sidebar collapsed */
-.hidden-bar {
-  writing-mode: vertical-lr; display: flex; align-items: center; justify-content: center;
-  width: 32px; min-width: 32px; background: var(--surface2); cursor: pointer; font-size: 11px;
-  color: var(--text3); user-select: none; flex-shrink: 0; border-right: 1px solid var(--border);
-}
-.hidden-bar.right-edge { border-right: none; border-left: 1px solid var(--border); }
-.hidden-bar:hover { background: var(--surface); color: var(--text2); }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #c5c5d2;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
 
-.resize-handle {
-  width: 6px; min-width: 6px; cursor: col-resize; flex-shrink: 0;
-  background: transparent; position: relative; z-index: 5;
-}
-.resize-handle::after {
-  content: ""; position: absolute; top: 0; bottom: 0; left: 2px; width: 1px;
-  background: transparent;
-}
-.resize-handle:hover::after,
-.resize-handle.resizing::after { background: var(--accent); }
-body.resizing-panels { cursor: col-resize; user-select: none; }
+    /* ===== Layout ===== */
+    #app {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      background: var(--bg);
+    }
 
-/* Empty State */
-#empty-state {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  flex: 1; gap: 12px; color: var(--text3); background: var(--bg2);
-}
+    #center-panel {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--bg2);
+    }
 
-/* File Editor */
-#file-editor { display: flex; flex-direction: column; flex: 1; min-height: 0; background: var(--bg2); }
-#file-editor textarea {
-  flex: 1; background: var(--bg2); color: var(--text);
-  border: none; padding: 10px 12px; font-family: var(--mono); font-size: 13px;
-  resize: none; outline: none; min-height: 0;
-}
+    /* ===== Pane Header ===== */
+    .pane-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      min-height: 38px;
+      flex-shrink: 0;
+    }
 
-/* Modal */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.28);
-  display: flex; align-items: center; justify-content: center; z-index: 100;
-}
-.modal {
-  background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
-  padding: 24px; min-width: 420px; max-width: 520px;
-  box-shadow: 0 18px 50px rgba(0,0,0,0.18);
-}
-.modal h3 { font-size: 16px; margin-bottom: 16px; color: var(--text); }
-.modal .form-group { margin-bottom: 12px; }
-.modal label { display: block; font-size: 11px; color: var(--text3); margin-bottom: 4px; }
-.modal input[type="text"], .modal textarea, .modal select {
-  width: 100%; background: var(--bg2); color: var(--text);
-  border: 1px solid var(--border); border-radius: 6px;
-  padding: 7px 9px; font-size: 13px;
-}
-.modal input[type="text"]:focus, .modal textarea:focus, .modal select:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(16,163,127,0.12); }
-.modal textarea { min-height: 80px; font-family: var(--mono); resize: vertical; }
-.modal .form-row { display: flex; gap: 12px; align-items: center; }
-.modal .btn-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .pane-header .title {
+      font-size: 12px;
+      font-weight: 650;
+      color: var(--text2);
+      white-space: nowrap;
+    }
 
-/* Context Menu */
-.ctx-menu {
-  position: fixed; z-index: 200;
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 8px; padding: 5px 0; min-width: 150px;
-  box-shadow: 0 12px 32px rgba(0,0,0,0.14);
-}
-.ctx-item {
-  display: block; width: 100%; text-align: left; padding: 7px 14px;
-  font-size: 12px; color: var(--text);
-}
-.ctx-item:hover { background: var(--surface2); }
-.ctx-item.danger { color: var(--red); }
-.ctx-divider { height: 1px; background: var(--border); margin: 5px 0; }
+    .pane-header .spacer {
+      flex: 1;
+    }
 
-/* Segment control */
-.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: var(--surface2); }
-.segmented button {
-  padding: 3px 10px; font-size: 11px; background: transparent; color: var(--text2);
-  border-right: 1px solid var(--border);
-}
-.segmented button:last-child { border-right: none; }
-.segmented button.active { background: var(--accent); color: #ffffff; }
+    .pane-footer {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--surface2);
+      border-top: 1px solid var(--border);
+      font-size: 11px;
+      flex-shrink: 0;
+      min-height: 32px;
+    }
 
-/* Toast notification */
-.toast {
-  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-  background: var(--text); color: #ffffff; border: 1px solid rgba(0,0,0,0.08);
-  padding: 9px 20px; border-radius: 999px; font-size: 13px; z-index: 300;
-  opacity: 0; transition: opacity 0.3s;
-  pointer-events: none; box-shadow: 0 12px 28px rgba(0,0,0,0.18);
-}
-.toast.show { opacity: 1; }
-.toast.warn { background: #fff7ed; border-color: #fed7aa; color: var(--orange); }
-.toast.error { background: #fef3f2; border-color: #fee4e2; color: var(--red); }
-.toast.success { background: var(--accent-soft); border-color: var(--accent-border); color: #0f766e; }
-</style>
+    .btn-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      color: var(--text3);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .btn-icon:hover {
+      background: var(--surface);
+      color: var(--text2);
+    }
+
+    /* ===== Session Sidebar ===== */
+    #session-sidebar {
+      width: 240px;
+      min-width: 100px;
+      max-width: none;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface2);
+      border-right: 1px solid var(--border);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    #session-tree {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 4px;
+      min-height: 0;
+    }
+
+    .tree-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      cursor: pointer;
+      user-select: none;
+      font-size: 12px;
+      white-space: nowrap;
+      border-radius: 6px;
+      margin: 1px 4px;
+      color: var(--text2);
+    }
+
+    .tree-row:hover {
+      background: var(--surface);
+    }
+
+    .tree-row.selected {
+      background: var(--accent-soft);
+      color: var(--text);
+      outline: 1px solid var(--accent-border);
+    }
+
+    .tree-row.active {
+      background: #f1f8f5;
+      color: var(--text);
+    }
+
+    .tree-row.selected.active {
+      background: var(--accent-soft);
+      color: var(--text);
+      outline: 1px solid var(--accent-border);
+    }
+
+    .tree-row.active .tree-icon {
+      color: var(--accent);
+    }
+
+    .tree-row .tree-icon {
+      width: 16px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text3);
+      flex-shrink: 0;
+    }
+
+    .tree-row .tree-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tree-row .tree-badge {
+      font-size: 10px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .tree-row input {
+      background: var(--bg2);
+      border: 1px solid var(--accent);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 3px 6px;
+      font-size: 12px;
+      width: 100%;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.12);
+    }
+
+    .tree-row.drag-over {
+      outline: 2px dashed var(--accent);
+      outline-offset: -2px;
+    }
+
+    .empty-tree {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      color: var(--text3);
+      font-size: 13px;
+      gap: 6px;
+      text-align: center;
+    }
+
+    /* ===== Connection Bar ===== */
+    #connection-bar {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+      flex-shrink: 0;
+    }
+
+    .conn-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .conn-row+.conn-row {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border);
+    }
+
+    .conn-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text3);
+      white-space: nowrap;
+    }
+
+    .conn-select {
+      background: var(--bg2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 12px;
+      max-width: 170px;
+    }
+
+    .conn-select:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.12);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 650;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #0e8f70;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #ffffff;
+    }
+
+    .btn-danger:hover {
+      background: #b42318;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-dot.green {
+      background: var(--green);
+    }
+
+    .status-dot.gray {
+      background: #c5c5d2;
+    }
+
+    .status-text {
+      font-size: 11px;
+      color: var(--text3);
+      white-space: nowrap;
+    }
+
+    .error-bar {
+      background: #fef3f2;
+      color: var(--red);
+      border-top: 1px solid #fee4e2;
+      font-size: 11px;
+      padding: 5px 14px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: var(--text2);
+      white-space: nowrap;
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      accent-color: var(--accent);
+    }
+
+    /* ===== Preset Panel ===== */
+    #preset-panel {
+      width: 260px;
+      min-width: 100px;
+      max-width: none;
+      display: flex;
+      flex-direction: column;
+      background: var(--surface2);
+      border-left: 1px solid var(--border);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    #preset-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px;
+      min-height: 0;
+    }
+
+    .preset-group {
+      margin-bottom: 6px;
+    }
+
+    .preset-group-header {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 7px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 650;
+      color: var(--text2);
+    }
+
+    .preset-group-header:hover {
+      background: var(--surface);
+    }
+
+    .preset-cmd {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 9px;
+      margin: 3px 0 3px 16px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 11px;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      transition: all 0.1s;
+    }
+
+    .preset-cmd:hover {
+      border-color: var(--accent-border);
+      background: #fbfefd;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .preset-cmd .cmd-icon {
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    .preset-cmd .cmd-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .preset-cmd .cmd-name {
+      font-size: 11px;
+      line-height: 1.35;
+      color: var(--text);
+    }
+
+    .preset-cmd .cmd-payload {
+      font-size: 10px;
+      color: var(--text3);
+      font-family: var(--mono);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .preset-cmd .cmd-hotkey {
+      font-size: 9px;
+      padding: 1px 5px;
+      background: var(--surface);
+      border-radius: 4px;
+      color: var(--text3);
+    }
+
+    /* ===== Receive Area ===== */
+    #receive-area {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      background: var(--bg2);
+    }
+
+    #receive-log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      background: var(--bg2);
+      font-family: var(--mono);
+      font-size: 12px;
+      min-height: 0;
+    }
+
+    .log-row {
+      display: flex;
+      gap: 8px;
+      padding: 3px 5px;
+      align-items: flex-start;
+      line-height: 1.45;
+      border-radius: 5px;
+    }
+
+    .log-row:hover {
+      background: var(--surface2);
+    }
+
+    .log-ts {
+      color: var(--text3);
+      font-size: 10px;
+      flex-shrink: 0;
+      width: 80px;
+    }
+
+    .log-dir {
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+      width: 42px;
+    }
+
+    .log-dir.rx {
+      color: var(--blue);
+    }
+
+    .log-dir.tx {
+      color: var(--accent);
+    }
+
+    .log-ascii {
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-hex {
+      color: var(--text3);
+      font-size: 10px;
+    }
+
+    .log-mixed {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    /* ===== Send Area ===== */
+    #send-area {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      border-top: 1px solid var(--border);
+      background: var(--bg2);
+    }
+
+    #send-input {
+      height: 104px;
+      min-height: 60px;
+      background: var(--bg2);
+      color: var(--text);
+      border: none;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 13px;
+      resize: vertical;
+      outline: none;
+    }
+
+    #send-input::placeholder {
+      color: var(--text3);
+    }
+
+    /* Hidden bar when sidebar collapsed */
+    .hidden-bar {
+      writing-mode: vertical-lr;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      min-width: 32px;
+      background: var(--surface2);
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text3);
+      user-select: none;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+    }
+
+    .hidden-bar.right-edge {
+      border-right: none;
+      border-left: 1px solid var(--border);
+    }
+
+    .hidden-bar:hover {
+      background: var(--surface);
+      color: var(--text2);
+    }
+
+    .resize-handle {
+      width: 6px;
+      min-width: 6px;
+      cursor: col-resize;
+      flex-shrink: 0;
+      background: transparent;
+      position: relative;
+      z-index: 5;
+    }
+
+    .resize-handle::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 2px;
+      width: 1px;
+      background: transparent;
+    }
+
+    .resize-handle:hover::after,
+    .resize-handle.resizing::after {
+      background: var(--accent);
+    }
+
+    body.resizing-panels {
+      cursor: col-resize;
+      user-select: none;
+    }
+
+    /* Empty State */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 12px;
+      color: var(--text3);
+      background: var(--bg2);
+    }
+
+    /* File Editor */
+    #file-editor {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      background: var(--bg2);
+    }
+
+    #file-editor textarea {
+      flex: 1;
+      background: var(--bg2);
+      color: var(--text);
+      border: none;
+      padding: 10px 12px;
+      font-family: var(--mono);
+      font-size: 13px;
+      resize: none;
+      outline: none;
+      min-height: 0;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px;
+      min-width: 420px;
+      max-width: 520px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.18);
+    }
+
+    .modal h3 {
+      font-size: 16px;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .modal .form-group {
+      margin-bottom: 12px;
+    }
+
+    .modal label {
+      display: block;
+      font-size: 11px;
+      color: var(--text3);
+      margin-bottom: 4px;
+    }
+
+    .modal input[type="text"],
+    .modal textarea,
+    .modal select {
+      width: 100%;
+      background: var(--bg2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 9px;
+      font-size: 13px;
+    }
+
+    .modal input[type="text"]:focus,
+    .modal textarea:focus,
+    .modal select:focus {
+      border-color: var(--accent);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(16, 163, 127, 0.12);
+    }
+
+    .modal textarea {
+      min-height: 80px;
+      font-family: var(--mono);
+      resize: vertical;
+    }
+
+    .modal .form-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .modal .btn-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    /* Context Menu */
+    .ctx-menu {
+      position: fixed;
+      z-index: 200;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 0;
+      min-width: 150px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+    }
+
+    .ctx-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 7px 14px;
+      font-size: 12px;
+      color: var(--text);
+    }
+
+    .ctx-item:hover {
+      background: var(--surface2);
+    }
+
+    .ctx-item.danger {
+      color: var(--red);
+    }
+
+    .ctx-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 5px 0;
+    }
+
+    /* Segment control */
+    .segmented {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      background: var(--surface2);
+    }
+
+    .segmented button {
+      padding: 3px 10px;
+      font-size: 11px;
+      background: transparent;
+      color: var(--text2);
+      border-right: 1px solid var(--border);
+    }
+
+    .segmented button:last-child {
+      border-right: none;
+    }
+
+    .segmented button.active {
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text);
+      color: #ffffff;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      padding: 9px 20px;
+      border-radius: 999px;
+      font-size: 13px;
+      z-index: 300;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .toast.warn {
+      background: #fff7ed;
+      border-color: #fed7aa;
+      color: var(--orange);
+    }
+
+    .toast.error {
+      background: #fef3f2;
+      border-color: #fee4e2;
+      color: var(--red);
+    }
+
+    .toast.success {
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+      color: #0f766e;
+    }
+  </style>
 </head>
+
 <body>
-<div id="app">
-  <!-- Left: Session Sidebar -->
-  <div id="session-sidebar">
-    <div class="pane-header">
-      <span class="title">📁 会话管理</span>
-      <span class="spacer"></span>
-      <button class="btn-icon" title="刷新会话树" onclick="refreshSessionTree()">↻</button>
-      <button class="btn-icon" title="新建目录" onclick="newFolder()">📂</button>
-      <button class="btn-icon" title="新建会话" onclick="newSession()">＋</button>
-      <button class="btn-icon" title="隐藏面板 (⌘⇧S)" onclick="toggleSessionSidebar()">◀</button>
-    </div>
-    <div id="session-tree"></div>
-    <div class="pane-footer">
-      <span id="session-status" style="font-size:11px;color:var(--text3)">未加载会话</span>
-      <span class="spacer"></span>
-      <button class="btn-icon" style="font-size:16px" title="打开存储目录" onclick="rpc('open_config_dir').then(r=>toast(r.path,'')).catch(console.error)">📂</button>
-    </div>
-  </div>
-  <div id="session-resizer" class="resize-handle" title="拖拽调整会话管理宽度"></div>
-
-  <!-- Session hidden bar -->
-  <div id="session-hidden-bar" class="hidden-bar" style="display:none" onclick="toggleSessionSidebar()" title="显示会话面板 (⌘⇧S)">会话</div>
-
-  <!-- Center: Serial config + Receive/Send/File editor -->
-  <div id="center-panel">
-    <!-- Connection Bar: initially hidden until session loaded -->
-    <div id="connection-bar" style="display:none">
-      <div class="conn-row">
-        <span class="conn-label">设备</span>
-        <select id="device-select" class="conn-select" style="min-width:180px">
-          <option value="">— 正在扫描串口 —</option>
-        </select>
-        <button class="btn-icon" onclick="refreshDevices()" title="刷新设备">🔄</button>
-        <span style="width:8px"></span>
-        <span class="conn-label">波特率</span>
-        <select id="baudrate-select" class="conn-select">
-          <option value="1200">1200</option><option value="2400">2400</option><option value="4800">4800</option>
-          <option value="9600">9600</option><option value="19200">19200</option><option value="38400">38400</option>
-          <option value="57600">57600</option><option value="115200" selected>115200</option>
-          <option value="230400">230400</option><option value="460800">460800</option><option value="921600">921600</option>
-        </select>
-        <span class="conn-label">数据位</span>
-        <select id="databits-select" class="conn-select">
-          <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8" selected>8</option>
-        </select>
-        <span class="conn-label">校验</span>
-        <select id="parity-select" class="conn-select">
-          <option value="none" selected>None</option><option value="even">Even</option><option value="odd">Odd</option>
-        </select>
-        <span class="conn-label">停止</span>
-        <select id="stopbits-select" class="conn-select">
-          <option value="1" selected>1</option><option value="2">2</option>
-        </select>
-        <span class="conn-label">流控</span>
-        <select id="flowctrl-select" class="conn-select">
-          <option value="none" selected>None</option><option value="rtscts">RTS/CTS</option><option value="xonxoff">XON/XOFF</option>
-        </select>
-      </div>
-      <div class="conn-row">
-        <label class="checkbox-row"><input type="checkbox" id="auto-connect"> 自动打开串口</label>
+  <div id="app">
+    <!-- Left: Session Sidebar -->
+    <div id="session-sidebar">
+      <div class="pane-header">
+        <span class="title">📁 会话管理</span>
         <span class="spacer"></span>
-        <button id="connect-btn" class="btn btn-primary" onclick="toggleConnect()" disabled>
-          <span class="status-dot" style="background:#a6e3a1"></span> 连接
-        </button>
-        <span id="conn-status" class="status-text">
-          <span class="status-dot gray"></span> 未连接
-        </span>
-        <span id="conn-device" class="status-text"></span>
+        <button class="btn-icon" title="刷新会话树" onclick="refreshSessionTree()">↻</button>
+        <button class="btn-icon" title="新建目录" onclick="newFolder()">📂</button>
+        <button class="btn-icon" title="新建会话" onclick="newSession()">＋</button>
+        <button class="btn-icon" title="隐藏面板 (⌘⇧S)" onclick="toggleSessionSidebar()">◀</button>
       </div>
-      <div id="error-bar" class="error-bar"></div>
+      <div id="session-tree"></div>
+      <div class="pane-footer">
+        <span id="session-status" style="font-size:11px;color:var(--text3)">未加载会话</span>
+        <span class="spacer"></span>
+        <button class="btn-icon" style="font-size:16px" title="打开存储目录"
+          onclick="rpc('open_config_dir').then(r=>toast(r.path,'')).catch(console.error)">📂</button>
+      </div>
+    </div>
+    <div id="session-resizer" class="resize-handle" title="拖拽调整会话管理宽度"></div>
+
+    <!-- Session hidden bar -->
+    <div id="session-hidden-bar" class="hidden-bar" style="display:none" onclick="toggleSessionSidebar()"
+      title="显示会话面板 (⌘⇧S)">会话</div>
+
+    <!-- Center: Serial config + Receive/Send/File editor -->
+    <div id="center-panel">
+      <!-- Connection Bar: initially hidden until session loaded -->
+      <div id="connection-bar" style="display:none">
+        <div class="conn-row">
+          <span class="conn-label">设备</span>
+          <select id="device-select" class="conn-select" style="min-width:180px">
+            <option value="">— 正在扫描串口 —</option>
+          </select>
+          <button class="btn-icon" onclick="refreshDevices()" title="刷新设备">🔄</button>
+          <span style="width:8px"></span>
+          <span class="conn-label">波特率</span>
+          <select id="baudrate-select" class="conn-select">
+            <option value="1200">1200</option>
+            <option value="2400">2400</option>
+            <option value="4800">4800</option>
+            <option value="9600">9600</option>
+            <option value="19200">19200</option>
+            <option value="38400">38400</option>
+            <option value="57600">57600</option>
+            <option value="115200" selected>115200</option>
+            <option value="230400">230400</option>
+            <option value="460800">460800</option>
+            <option value="921600">921600</option>
+          </select>
+          <span class="conn-label">数据位</span>
+          <select id="databits-select" class="conn-select">
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8" selected>8</option>
+          </select>
+          <span class="conn-label">校验</span>
+          <select id="parity-select" class="conn-select">
+            <option value="none" selected>None</option>
+            <option value="even">Even</option>
+            <option value="odd">Odd</option>
+          </select>
+          <span class="conn-label">停止</span>
+          <select id="stopbits-select" class="conn-select">
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+          </select>
+          <span class="conn-label">流控</span>
+          <select id="flowctrl-select" class="conn-select">
+            <option value="none" selected>None</option>
+            <option value="rtscts">RTS/CTS</option>
+            <option value="xonxoff">XON/XOFF</option>
+          </select>
+        </div>
+        <div class="conn-row">
+          <label class="checkbox-row"><input type="checkbox" id="auto-connect"> 自动打开串口</label>
+          <span class="spacer"></span>
+          <button id="connect-btn" class="btn btn-primary" onclick="toggleConnect()" disabled>
+            <span class="status-dot" style="background:#a6e3a1"></span> 连接
+          </button>
+          <span id="conn-status" class="status-text">
+            <span class="status-dot gray"></span> 未连接
+          </span>
+          <span id="conn-device" class="status-text"></span>
+        </div>
+        <div id="error-bar" class="error-bar"></div>
+      </div>
+
+      <!-- Empty State: shown by default until session loaded -->
+      <div id="empty-state" class="empty-state">
+        <div style="font-size:48px">🔌</div>
+        <div style="font-size:16px;font-weight:600">未选择会话</div>
+        <div style="font-size:13px">从左侧选择一个会话开始，或新建一个</div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-primary" onclick="newSession()">＋ 新建会话</button>
+          <button class="btn" style="border:1px solid var(--border)" onclick="refreshSessionTree(true)">▶
+            加载首个会话</button>
+        </div>
+      </div>
+
+      <!-- Receive: hidden initially -->
+      <div id="receive-area" style="display:none">
+        <div class="pane-header">
+          <span class="title">📥 接收区</span>
+          <div class="segmented" id="receive-mode">
+            <button class="active" data-mode="text">Text</button>
+            <button data-mode="hex">HEX</button>
+          </div>
+          <label class="checkbox-row"><input type="checkbox" id="receive-mixed" checked>混显</label>
+          <span class="spacer"></span>
+          <span id="log-count" style="font-size:11px;color:var(--text3)">0 条</span>
+          <button class="btn-icon" onclick="clearLogs()" title="清空接收区">🗑</button>
+          <button class="btn-icon" onclick="exportLogs()" title="导出日志">💾</button>
+        </div>
+        <div id="receive-log"></div>
+        <div class="pane-footer">
+          <label class="checkbox-row"><input type="checkbox" id="auto-scroll" checked>自动滚动</label>
+          <label class="checkbox-row"><input type="checkbox" id="show-timestamp" checked>时间戳</label>
+          <span class="spacer"></span>
+          <span id="serial-error-text" style="color:var(--orange);font-size:11px"></span>
+        </div>
+      </div>
+
+      <!-- Send: hidden initially -->
+      <div id="send-area" style="display:none">
+        <div class="pane-header">
+          <span class="title">📤 发送区</span>
+          <div class="segmented" id="send-mode">
+            <button class="active" data-mode="ascii">Text</button>
+            <button data-mode="hex">HEX</button>
+          </div>
+          <label class="checkbox-row"><input type="checkbox" id="send-crlf" checked>自动回车</label>
+          <span class="spacer"></span>
+          <span id="hex-valid" style="font-size:11px;color:var(--text3)"></span>
+        </div>
+        <textarea id="send-input" placeholder="输入要发送的文本... (⌘↩ 发送)"></textarea>
+        <div class="pane-footer">
+          <button class="btn-icon" onclick="document.getElementById('send-input').value=''" title="清空">🗑</button>
+          <span class="spacer"></span>
+          <label class="checkbox-row"><input type="checkbox" id="local-echo" checked>本地回显</label>
+          <button class="btn btn-primary" onclick="sendData()">📨 发送</button>
+        </div>
+      </div>
+
+      <!-- File Editor: hidden initially -->
+      <div id="file-editor" style="display:none">
+        <div class="pane-header">
+          <span class="title">📄</span><span id="file-editor-name" style="font-size:12px;font-weight:600"></span>
+          <span class="spacer"></span>
+          <button class="btn btn-primary" onclick="saveFile()">💾 保存 (⌘S)</button>
+        </div>
+        <textarea id="file-editor-textarea"></textarea>
+        <div class="pane-footer">
+          <span id="file-editor-info" style="font-size:11px;color:var(--text3)"></span>
+          <span class="spacer"></span>
+          <span style="font-size:11px;color:var(--text3)">自动保存已开启</span>
+        </div>
+      </div>
     </div>
 
-    <!-- Empty State: shown by default until session loaded -->
-        <div id="empty-state" class="empty-state">
-          <div style="font-size:48px">🔌</div>
-          <div style="font-size:16px;font-weight:600">未选择会话</div>
-          <div style="font-size:13px">从左侧选择一个会话开始，或新建一个</div>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button class="btn btn-primary" onclick="newSession()">＋ 新建会话</button>
-            <button class="btn" style="border:1px solid var(--border)" onclick="refreshSessionTree(true)">▶ 加载首个会话</button>
-          </div>
-        </div>
+    <!-- Preset hidden bar -->
+    <div id="preset-hidden-bar" class="hidden-bar right-edge" style="display:none" onclick="togglePresetSidebar()"
+      title="显示预设面板 (⌘⇧P)">预设</div>
+    <div id="preset-resizer" class="resize-handle" style="display:none" title="拖拽调整预设指令宽度"></div>
 
-        <!-- Receive: hidden initially -->
-        <div id="receive-area" style="display:none">
-          <div class="pane-header">
-            <span class="title">📥 接收区</span>
-            <div class="segmented" id="receive-mode">
-              <button class="active" data-mode="text">Text</button>
-              <button data-mode="hex">HEX</button>
-            </div>
-            <label class="checkbox-row"><input type="checkbox" id="receive-mixed" checked>混显</label>
-            <span class="spacer"></span>
-            <span id="log-count" style="font-size:11px;color:var(--text3)">0 条</span>
-            <button class="btn-icon" onclick="clearLogs()" title="清空接收区">🗑</button>
-            <button class="btn-icon" onclick="exportLogs()" title="导出日志">💾</button>
-          </div>
-          <div id="receive-log"></div>
-          <div class="pane-footer">
-            <label class="checkbox-row"><input type="checkbox" id="auto-scroll" checked>自动滚动</label>
-            <label class="checkbox-row"><input type="checkbox" id="show-timestamp" checked>时间戳</label>
-            <span class="spacer"></span>
-            <span id="serial-error-text" style="color:var(--orange);font-size:11px"></span>
-          </div>
-        </div>
-
-        <!-- Send: hidden initially -->
-        <div id="send-area" style="display:none">
-          <div class="pane-header">
-            <span class="title">📤 发送区</span>
-            <div class="segmented" id="send-mode">
-              <button class="active" data-mode="ascii">Text</button>
-              <button data-mode="hex">HEX</button>
-            </div>
-            <label class="checkbox-row"><input type="checkbox" id="send-crlf" checked>自动回车</label>
-            <span class="spacer"></span>
-            <span id="hex-valid" style="font-size:11px;color:var(--text3)"></span>
-          </div>
-          <textarea id="send-input" placeholder="输入要发送的文本... (⌘↩ 发送)"></textarea>
-          <div class="pane-footer">
-            <button class="btn-icon" onclick="document.getElementById('send-input').value=''" title="清空">🗑</button>
-            <span class="spacer"></span>
-            <label class="checkbox-row"><input type="checkbox" id="local-echo" checked>本地回显</label>
-            <button class="btn btn-primary" onclick="sendData()">📨 发送</button>
-          </div>
-        </div>
-
-        <!-- File Editor: hidden initially -->
-        <div id="file-editor" style="display:none">
-          <div class="pane-header">
-            <span class="title">📄</span><span id="file-editor-name" style="font-size:12px;font-weight:600"></span>
-            <span class="spacer"></span>
-            <button class="btn btn-primary" onclick="saveFile()">💾 保存 (⌘S)</button>
-          </div>
-          <textarea id="file-editor-textarea"></textarea>
-          <div class="pane-footer">
-            <span id="file-editor-info" style="font-size:11px;color:var(--text3)"></span>
-            <span class="spacer"></span>
-            <span style="font-size:11px;color:var(--text3)">自动保存已开启</span>
-          </div>
-        </div>
+    <!-- Right: Preset Panel -->
+    <div id="preset-panel" style="display:none">
+      <div class="pane-header">
+        <span class="title">📋 预设指令</span>
+        <span class="spacer"></span>
+        <button class="btn-icon" title="新建分组" onclick="addGroup()">📂</button>
+        <button class="btn-icon" title="隐藏面板 (⌘⇧P)" onclick="togglePresetSidebar()">▶</button>
+      </div>
+      <div id="preset-list"></div>
+      <div style="padding:4px; border-top:1px solid var(--border)">
+        <button style="width:100%; padding:4px; font-size:12px; color:var(--text2); border-radius:4px"
+          onclick="addCommand()">＋ 新增预设</button>
+      </div>
+    </div>
   </div>
 
-  <!-- Preset hidden bar -->
-  <div id="preset-hidden-bar" class="hidden-bar right-edge" style="display:none" onclick="togglePresetSidebar()" title="显示预设面板 (⌘⇧P)">预设</div>
-  <div id="preset-resizer" class="resize-handle" style="display:none" title="拖拽调整预设指令宽度"></div>
+  <!-- Context Menu -->
+  <div id="ctx-menu" class="ctx-menu" style="display:none"></div>
 
-  <!-- Right: Preset Panel -->
-  <div id="preset-panel" style="display:none">
-    <div class="pane-header">
-      <span class="title">📋 预设指令</span>
-      <span class="spacer"></span>
-      <button class="btn-icon" title="新建分组" onclick="addGroup()">📂</button>
-      <button class="btn-icon" title="隐藏面板 (⌘⇧P)" onclick="togglePresetSidebar()">▶</button>
-    </div>
-    <div id="preset-list"></div>
-    <div style="padding:4px; border-top:1px solid var(--border)">
-      <button style="width:100%; padding:4px; font-size:12px; color:var(--text2); border-radius:4px" onclick="addCommand()">＋ 新增预设</button>
-    </div>
-  </div>
-</div>
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
 
-<!-- Context Menu -->
-<div id="ctx-menu" class="ctx-menu" style="display:none"></div>
-
-<!-- Toast -->
-<div id="toast" class="toast"></div>
-
-<script>
-// ============================================================
-// Toast
-// ============================================================
-let toastTimer;
-function toast(msg, type) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = 'toast ' + (type || '');
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
-}
-
-// ============================================================
-// WebSocket
-// ============================================================
-const WS_URL = `ws://${location.host}/ws`;
-let ws, msgId = 0;
-const pending = {};
-
-function connect() {
-  ws = new WebSocket(WS_URL);
-  // 暴露给测试
-  window.__testWs = ws;
-  window.__rpcId = window.__rpcId || 0;
-  window.__rpcPending = window.__rpcPending || {};
-  ws.onopen = () => {
-    console.log('[WS] connected');
-    refreshDevices();
-  };
-  ws.onmessage = (e) => {
-    const msg = JSON.parse(e.data);
-    if (msg.id !== undefined) {
-      // 应用层 RPC 响应
-      const p = pending[msg.id];
-      if (p) { if (msg.error) p.reject(new Error(msg.error)); else p.resolve(msg.result); delete pending[msg.id]; }
-      // 测试层 RPC 响应
-      const tp = window.__rpcPending?.[msg.id];
-      if (tp) { if (msg.error) tp.reject(new Error(msg.error)); else tp.resolve(msg.result); delete window.__rpcPending[msg.id]; }
-    } else { handleEvent(msg); }
-  };
-  ws.onclose = () => { console.log('[WS] disconnected, reconnecting...'); setTimeout(connect, 2000); };
-  ws.onerror = () => {};
-}
-
-function rpc(method, params) {
-  return new Promise((resolve, reject) => {
-    const id = ++msgId;
-    pending[id] = { resolve, reject };
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ id, method, params }));
-    else reject(new Error('WebSocket not connected'));
-    setTimeout(() => { if (pending[id]) { delete pending[id]; reject(new Error('Timeout')); } }, 10000);
-  });
-}
-
-// ============================================================
-// State
-// ============================================================
-let state = {
-  config: {}, presets: [], tree: [], logEntries: [],
-  activeSessionId: null, activeFilePath: null,
-  serialOpen: false, serialDevice: null, serialError: null,
-  serialPortStatus: { available: false, reason: '' },
-};
-let selectedNodeId = null, selectedGroupId = null;
-const PANEL_MIN_WIDTH = 100;
-const CENTER_MIN_WIDTH = 360;
-
-function clampPanelWidth(width) {
-  const max = Math.max(PANEL_MIN_WIDTH, window.innerWidth - CENTER_MIN_WIDTH);
-  return Math.min(Math.max(PANEL_MIN_WIDTH, Math.round(width || PANEL_MIN_WIDTH)), max);
-}
-
-function setPanelWidth(id, width) {
-  document.getElementById(id).style.width = clampPanelWidth(width) + 'px';
-}
-
-function handleEvent(msg) {
-  switch (msg.type) {
-    case 'initial_state':
-      state.config = msg.config || {}; state.presets = msg.presets || [];
-      state.tree = msg.tree || []; state.logEntries = msg.logEntries || [];
-      state.activeSessionId = msg.activeSessionId; state.activeFilePath = msg.activeFilePath;
-      state.serialOpen = msg.serialOpen; state.serialDevice = msg.serialDevice; state.serialError = msg.serialError;
-      state.serialPortStatus = msg.serialPortStatus || { available: false, reason: '' };
-      applyState();
-      // 启动时自动加载首个会话
-      if (!state.activeSessionId && state.tree.length > 0) {
-        const first = findFirstSession(state.tree);
-        if (first) loadSession(first.id);
-      }
-      // 标记测试就绪
-      window.__test_ready = true;
-      break;
-    case 'log_entry':
-      state.logEntries.push(msg.entry);
-      if (state.logEntries.length > 5000) state.logEntries = state.logEntries.slice(-5000);
-      if (document.getElementById('receive-area').style.display !== 'none') renderLogs();
-      break;
-    case 'logs_cleared': state.logEntries = []; renderLogs(); break;
-    case 'config_updated': state.config = msg.config; applyConfig(); break;
-    case 'presets_updated': state.presets = msg.groups; renderPresets(); break;
-    case 'tree_updated': state.tree = msg.tree; clearEditingState(); renderTree(); break;
-    case 'session_loaded':
-      state.config = msg.config; state.presets = msg.presets;
-      state.logEntries = msg.logEntries || [];
-      state.activeSessionId = msg.activeSessionId; state.activeFilePath = msg.activeFilePath;
-      state.serialOpen = msg.serialOpen || false; state.serialDevice = msg.serialDevice || null; state.serialError = msg.serialError || null;
-      document.getElementById('receive-log').innerHTML = '';
-      if (msg.tree) state.tree = msg.tree;
-      if (editingNodeId) {
-        applyConfig(); renderPresets(); renderLogs(); updateConnectionUI(); updateWorkspaceVisibility();
-      } else {
-        clearEditingState();
-        applyState();
-      }
-      if (msg.autoOpenError) toast('自动打开串口失败: ' + msg.autoOpenError, 'error');
-      break;
-    case 'serial_opened': state.serialOpen = true; state.serialDevice = msg.device; state.serialError = null; updateConnectionUI(); break;
-    case 'serial_closed': state.serialOpen = false; state.serialDevice = null; updateConnectionUI(); break;
-    case 'serial_error': state.serialError = msg.message; updateConnectionUI(); break;
-  }
-}
-
-function applyState() { applyConfig(); renderTree(); renderPresets(); renderLogs(); updateConnectionUI(); updateWorkspaceVisibility(); }
-
-function applyConfig() {
-  const c = state.config;
-  if (c.baudRate) document.getElementById('baudrate-select').value = c.baudRate;
-  if (c.dataBits !== undefined) document.getElementById('databits-select').value = c.dataBits;
-  if (c.stopBits !== undefined) document.getElementById('stopbits-select').value = c.stopBits;
-  if (c.parity) document.getElementById('parity-select').value = c.parity;
-  if (c.flowControl) document.getElementById('flowctrl-select').value = c.flowControl;
-  document.getElementById('auto-connect').checked = c.autoConnect || false;
-  document.getElementById('send-crlf').checked = c.sendAppendCRLF !== false;
-  document.getElementById('local-echo').checked = c.localEcho !== false;
-  document.getElementById('receive-mixed').checked = c.receiveShowMixed !== false;
-  document.getElementById('auto-scroll').checked = c.receiveAutoScroll !== false;
-  document.getElementById('show-timestamp').checked = c.receiveShowTimestamp !== false;
-  document.getElementById('send-input').value = c.sendInputText || '';
-  document.querySelectorAll('#receive-mode button').forEach(b => b.classList.toggle('active', b.dataset.mode === (c.receiveDisplayMode || 'text')));
-  document.querySelectorAll('#send-mode button').forEach(b => b.classList.toggle('active', b.dataset.mode === (c.sendMode || 'ascii')));
-  if (c.sessionPanelWidth) setPanelWidth('session-sidebar', c.sessionPanelWidth);
-  if (c.presetPanelWidth) setPanelWidth('preset-panel', c.presetPanelWidth);
-  // session sidebar visibility
-  const sv = c.sessionPanelVisible !== false;
-  document.getElementById('session-sidebar').style.display = sv ? 'flex' : 'none';
-  document.getElementById('session-resizer').style.display = sv ? 'block' : 'none';
-  document.getElementById('session-hidden-bar').style.display = sv ? 'none' : 'flex';
-}
-
-function updateConnectionUI() {
-  const btn = document.getElementById('connect-btn');
-  const status = document.getElementById('conn-status');
-  const devSpan = document.getElementById('conn-device');
-  const errBar = document.getElementById('error-bar');
-  const devSel = document.getElementById('device-select');
-
-  if (state.serialOpen) {
-    btn.innerHTML = '<span class="status-dot" style="background:#f38ba8"></span> 断开';
-    btn.className = 'btn btn-danger';
-    status.innerHTML = '<span class="status-dot green"></span> 已连接';
-    devSpan.textContent = state.serialDevice ? '· ' + (state.serialDevice.name || state.serialDevice.path || '') : '';
-    errBar.style.display = 'none';
-    btn.disabled = false;
-  } else {
-    btn.innerHTML = '<span class="status-dot" style="background:#a6e3a1"></span> 连接';
-    btn.className = 'btn btn-primary';
-    status.innerHTML = '<span class="status-dot gray"></span> 未连接';
-    devSpan.textContent = '';
-    btn.disabled = !devSel.value;
-    if (state.serialError) {
-      errBar.style.display = 'flex';
-      errBar.innerHTML = '⚠ ' + state.serialError;
-    } else {
-      errBar.style.display = 'none';
+  <script>
+    // ============================================================
+    // Toast
+    // ============================================================
+    let toastTimer;
+    function toast(msg, type) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'toast ' + (type || '');
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
     }
-  }
-}
 
-/** 控制中间工作区和右侧预设栏的可见性 */
-function updateWorkspaceVisibility() {
-  const preset = document.getElementById('preset-panel');
-  const presetHidden = document.getElementById('preset-hidden-bar');
-  const presetResizer = document.getElementById('preset-resizer');
-  const empty = document.getElementById('empty-state');
-  const receive = document.getElementById('receive-area');
-  const send = document.getElementById('send-area');
-  const fileEditor = document.getElementById('file-editor');
-  const connection = document.getElementById('connection-bar');
+    // ============================================================
+    // WebSocket
+    // ============================================================
+    const WS_URL = `ws://${location.host}/ws`;
+    let ws, msgId = 0;
+    const pending = {};
 
-  if (state.activeFilePath) {
-    // 文件编辑模式
-    connection.style.display = 'none';
-    preset.style.display = 'none'; presetHidden.style.display = 'none'; presetResizer.style.display = 'none';
-    empty.style.display = 'none';
-    receive.style.display = 'none'; send.style.display = 'none';
-    fileEditor.style.display = 'flex';
-  } else if (state.activeSessionId) {
-    // 会话模式
-    connection.style.display = 'block';
-    const pv = state.config.presetPanelVisible !== false;
-    preset.style.display = pv ? 'flex' : 'none';
-    presetResizer.style.display = pv ? 'block' : 'none';
-    presetHidden.style.display = pv ? 'none' : 'flex';
-    empty.style.display = 'none';
-    receive.style.display = 'flex'; send.style.display = 'flex';
-    fileEditor.style.display = 'none';
-  } else {
-    // 无会话: 只显示空状态
-    connection.style.display = 'none';
-    preset.style.display = 'none'; presetHidden.style.display = 'none'; presetResizer.style.display = 'none';
-    empty.style.display = 'flex';
-    receive.style.display = 'none'; send.style.display = 'none';
-    fileEditor.style.display = 'none';
-  }
-}
-
-// ============================================================
-// Tree
-// ============================================================
-// ============================================================
-// Session Tree (VS Code 风格内联编辑)
-// ============================================================
-let editingNodeId = null;     // 正在重命名的节点 ID
-let insertingType = null;     // 'session' | 'folder' — 正在新建
-let insertParentId = null;    // 新建时的父节点 ID (null=根)
-let treeClickTimer = null;
-let renameGuardUntil = 0;
-
-function beginRename(nodeId) {
-  clearTimeout(treeClickTimer);
-  selectedNodeId = nodeId;
-  editingNodeId = nodeId;
-  renameGuardUntil = Date.now() + 800;
-  renderTree();
-}
-
-function renderTree() {
-  const container = document.getElementById('session-tree');
-  container.innerHTML = '';
-  if (!state.tree || state.tree.length === 0) {
-    container.innerHTML = '<div class="empty-tree"><div style="font-size:28px">📭</div><div>还没有会话</div><div>点 ＋ 创建第一个会话</div></div>';
-    // 如果正在根下新建，即使树为空也显示输入行
-    if (insertingType && insertParentId === null) {
-      container.innerHTML = '';
-      container.appendChild(createTreeRow({ __ghost: true, kind: insertingType }, 0));
+    function connect() {
+      ws = new WebSocket(WS_URL);
+      // 暴露给测试
+      window.__testWs = ws;
+      window.__rpcId = window.__rpcId || 0;
+      window.__rpcPending = window.__rpcPending || {};
+      ws.onopen = () => {
+        console.log('[WS] connected');
+        refreshDevices();
+      };
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.id !== undefined) {
+          // 应用层 RPC 响应
+          const p = pending[msg.id];
+          if (p) { if (msg.error) p.reject(new Error(msg.error)); else p.resolve(msg.result); delete pending[msg.id]; }
+          // 测试层 RPC 响应
+          const tp = window.__rpcPending?.[msg.id];
+          if (tp) { if (msg.error) tp.reject(new Error(msg.error)); else tp.resolve(msg.result); delete window.__rpcPending[msg.id]; }
+        } else { handleEvent(msg); }
+      };
+      ws.onclose = () => { console.log('[WS] disconnected, reconnecting...'); setTimeout(connect, 2000); };
+      ws.onerror = () => { };
     }
-    return;
-  }
-  for (const node of state.tree) container.appendChild(createTreeRow(node, 0));
-  // 在根层级插入
-  if (insertingType && insertParentId === null) {
-    container.appendChild(createTreeRow({ __ghost: true, kind: insertingType }, 0));
-  }
-}
 
-function createTreeRow(node, depth) {
-  const isGhost = node.__ghost === true;
+    function rpc(method, params) {
+      return new Promise((resolve, reject) => {
+        const id = ++msgId;
+        pending[id] = { resolve, reject };
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ id, method, params }));
+        else reject(new Error('WebSocket not connected'));
+        setTimeout(() => { if (pending[id]) { delete pending[id]; reject(new Error('Timeout')); } }, 10000);
+      });
+    }
 
-  // Ghost: 内联新建行
-  if (isGhost) {
-    const wrapper = document.createElement('div');
-    const row = document.createElement('div');
-    row.className = 'tree-row';
-    row.style.paddingLeft = (8 + depth * 12) + 'px';
-    // 图标
-    const icon = document.createElement('span');
-    icon.className = 'tree-icon';
-    icon.textContent = node.kind === 'folder' ? '📁' : '📄';
-    row.appendChild(icon);
+    // ============================================================
+    // State
+    // ============================================================
+    let state = {
+      config: {}, presets: [], tree: [], logEntries: [],
+      activeSessionId: null, activeFilePath: null,
+      serialOpen: false, serialDevice: null, serialError: null,
+      serialPortStatus: { available: false, reason: '' },
+    };
+    let selectedNodeId = null, selectedGroupId = null;
+    const PANEL_MIN_WIDTH = 100;
+    const CENTER_MIN_WIDTH = 360;
 
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = node.kind === 'folder' ? '目录名称' : '会话名称';
-    input.style.cssText = 'flex:1;min-width:0';
-    row.appendChild(input);
-    wrapper.appendChild(row);
+    function clampPanelWidth(width) {
+      const max = Math.max(PANEL_MIN_WIDTH, window.innerWidth - CENTER_MIN_WIDTH);
+      return Math.min(Math.max(PANEL_MIN_WIDTH, Math.round(width || PANEL_MIN_WIDTH)), max);
+    }
 
-    // 自动聚焦
-    setTimeout(() => input.focus(), 50);
+    function setPanelWidth(id, width) {
+      document.getElementById(id).style.width = clampPanelWidth(width) + 'px';
+    }
 
-    let committed = false;
-    const commit = () => {
-      if (committed) return; // 防止 Enter + blur 双重触发
-      committed = true;
-      const name = input.value.trim();
-      if (!name) { clearEditingState(); renderTree(); return; }
-      if (node.kind === 'session') {
-        rpc('new_session', { name, parentId: insertParentId })
-          .then(() => { clearEditingState(); })
-          .catch(e => { toast('创建失败: ' + e.message, 'error'); clearEditingState(); renderTree(); });
+    function handleEvent(msg) {
+      switch (msg.type) {
+        case 'initial_state':
+          state.config = msg.config || {}; state.presets = msg.presets || [];
+          state.tree = msg.tree || []; state.logEntries = msg.logEntries || [];
+          state.activeSessionId = msg.activeSessionId; state.activeFilePath = msg.activeFilePath;
+          state.serialOpen = msg.serialOpen; state.serialDevice = msg.serialDevice; state.serialError = msg.serialError;
+          state.serialPortStatus = msg.serialPortStatus || { available: false, reason: '' };
+          applyState();
+          // 启动时自动加载首个会话
+          if (!state.activeSessionId && state.tree.length > 0) {
+            const first = findFirstSession(state.tree);
+            if (first) loadSession(first.id);
+          }
+          // 标记测试就绪
+          window.__test_ready = true;
+          break;
+        case 'log_entry':
+          state.logEntries.push(msg.entry);
+          if (state.logEntries.length > 5000) state.logEntries = state.logEntries.slice(-5000);
+          if (document.getElementById('receive-area').style.display !== 'none') renderLogs();
+          break;
+        case 'logs_cleared': state.logEntries = []; renderLogs(); break;
+        case 'config_updated': state.config = msg.config; applyConfig(); break;
+        case 'presets_updated': state.presets = msg.groups; renderPresets(); break;
+        case 'tree_updated': state.tree = msg.tree; clearEditingState(); renderTree(); break;
+        case 'session_loaded':
+          state.config = msg.config; state.presets = msg.presets;
+          state.logEntries = msg.logEntries || [];
+          state.activeSessionId = msg.activeSessionId; state.activeFilePath = msg.activeFilePath;
+          state.serialOpen = msg.serialOpen || false; state.serialDevice = msg.serialDevice || null; state.serialError = msg.serialError || null;
+          document.getElementById('receive-log').innerHTML = '';
+          if (msg.tree) state.tree = msg.tree;
+          if (editingNodeId) {
+            applyConfig(); renderPresets(); renderLogs(); updateConnectionUI(); updateWorkspaceVisibility();
+          } else {
+            clearEditingState();
+            applyState();
+          }
+          if (msg.autoOpenError) toast('自动打开串口失败: ' + msg.autoOpenError, 'error');
+          break;
+        case 'serial_opened': state.serialOpen = true; state.serialDevice = msg.device; state.serialError = null; updateConnectionUI(); break;
+        case 'serial_closed': state.serialOpen = false; state.serialDevice = null; updateConnectionUI(); break;
+        case 'serial_error': state.serialError = msg.message; updateConnectionUI(); break;
+      }
+    }
+
+    function applyState() { applyConfig(); renderTree(); renderPresets(); renderLogs(); updateConnectionUI(); updateWorkspaceVisibility(); }
+
+    function applyConfig() {
+      const c = state.config;
+      if (c.baudRate) document.getElementById('baudrate-select').value = c.baudRate;
+      if (c.dataBits !== undefined) document.getElementById('databits-select').value = c.dataBits;
+      if (c.stopBits !== undefined) document.getElementById('stopbits-select').value = c.stopBits;
+      if (c.parity) document.getElementById('parity-select').value = c.parity;
+      if (c.flowControl) document.getElementById('flowctrl-select').value = c.flowControl;
+      document.getElementById('auto-connect').checked = c.autoConnect || false;
+      document.getElementById('send-crlf').checked = c.sendAppendCRLF !== false;
+      document.getElementById('local-echo').checked = c.localEcho !== false;
+      document.getElementById('receive-mixed').checked = c.receiveShowMixed !== false;
+      document.getElementById('auto-scroll').checked = c.receiveAutoScroll !== false;
+      document.getElementById('show-timestamp').checked = c.receiveShowTimestamp !== false;
+      document.getElementById('send-input').value = c.sendInputText || '';
+      document.querySelectorAll('#receive-mode button').forEach(b => b.classList.toggle('active', b.dataset.mode === (c.receiveDisplayMode || 'text')));
+      document.querySelectorAll('#send-mode button').forEach(b => b.classList.toggle('active', b.dataset.mode === (c.sendMode || 'ascii')));
+      if (c.sessionPanelWidth) setPanelWidth('session-sidebar', c.sessionPanelWidth);
+      if (c.presetPanelWidth) setPanelWidth('preset-panel', c.presetPanelWidth);
+      // session sidebar visibility
+      const sv = c.sessionPanelVisible !== false;
+      document.getElementById('session-sidebar').style.display = sv ? 'flex' : 'none';
+      document.getElementById('session-resizer').style.display = sv ? 'block' : 'none';
+      document.getElementById('session-hidden-bar').style.display = sv ? 'none' : 'flex';
+    }
+
+    function updateConnectionUI() {
+      const btn = document.getElementById('connect-btn');
+      const status = document.getElementById('conn-status');
+      const devSpan = document.getElementById('conn-device');
+      const errBar = document.getElementById('error-bar');
+      const devSel = document.getElementById('device-select');
+
+      if (state.serialOpen) {
+        btn.innerHTML = '<span class="status-dot" style="background:#f38ba8"></span> 断开';
+        btn.className = 'btn btn-danger';
+        status.innerHTML = '<span class="status-dot green"></span> 已连接';
+        devSpan.textContent = state.serialDevice ? '· ' + (state.serialDevice.name || state.serialDevice.path || '') : '';
+        errBar.style.display = 'none';
+        btn.disabled = false;
       } else {
-        rpc('new_folder', { name, parentId: insertParentId })
-          .then(() => { clearEditingState(); })
-          .catch(e => { toast('创建失败: ' + e.message, 'error'); clearEditingState(); renderTree(); });
-      }
-    };
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); commit(); }
-      if (e.key === 'Escape') { e.preventDefault(); committed = true; clearEditingState(); renderTree(); }
-    });
-    input.addEventListener('blur', () => {
-      setTimeout(() => {
-        if (!committed && insertingType !== null) { commit(); }
-      }, 100);
-    });
-    // 阻止点击冒泡
-    row.onclick = (e) => e.stopPropagation();
-    // 阻止拖拽
-    row.draggable = false;
-    return wrapper;
-  }
-
-  // ---- 普通节点 ----
-  const isEditing = node.id === editingNodeId;
-
-  const div = document.createElement('div');
-  div.className = 'tree-row';
-  div.style.paddingLeft = (8 + depth * 12) + 'px';
-  div.draggable = !isEditing;
-
-  // 箭头 (仅目录)
-  if (node.kind === 'folder') {
-    const arrow = document.createElement('span');
-    arrow.textContent = node.expanded ? '▾' : '▸';
-    arrow.style.cssText = 'width:14px;font-size:10px;color:var(--text3);flex-shrink:0;cursor:pointer';
-    arrow.onclick = (e) => { e.stopPropagation(); node.expanded = !node.expanded; renderTree(); };
-    div.appendChild(arrow);
-  }
-
-  // 图标
-  const icon = document.createElement('span');
-  icon.className = 'tree-icon';
-  icon.textContent = node.kind === 'folder' ? (node.expanded ? '📂' : '📁') : node.kind === 'session' ? '📄' : '📝';
-  const isActive = (node.kind === 'session' && node.sessionId === state.activeSessionId) || (node.kind === 'file' && node.filePath === state.activeFilePath);
-  if (isActive) icon.style.color = node.kind === 'session' ? 'var(--green)' : 'var(--orange)';
-  div.appendChild(icon);
-
-  // 名称 或 编辑框
-  if (isEditing) {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = node.name;
-    input.style.cssText = 'flex:1;min-width:0';
-    div.appendChild(input);
-
-    const commitRename = () => {
-      const newName = input.value.trim();
-      const oldName = node.name;
-      clearEditingState();
-      if (newName && newName !== oldName) {
-        rpc('rename_node', { nodeId: node.id, newName }).catch(console.error);
-      }
-      renderTree();
-    };
-
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
-      if (e.key === 'Escape') { e.preventDefault(); clearEditingState(); renderTree(); }
-    });
-    input.addEventListener('blur', () => {
-      setTimeout(() => {
-        if (editingNodeId !== node.id) return;
-        if (Date.now() < renameGuardUntil) {
-          input.focus();
-          input.select();
-          return;
+        btn.innerHTML = '<span class="status-dot" style="background:#a6e3a1"></span> 连接';
+        btn.className = 'btn btn-primary';
+        status.innerHTML = '<span class="status-dot gray"></span> 未连接';
+        devSpan.textContent = '';
+        btn.disabled = !devSel.value;
+        if (state.serialError) {
+          errBar.style.display = 'flex';
+          errBar.innerHTML = '⚠ ' + state.serialError;
+        } else {
+          errBar.style.display = 'none';
         }
-        commitRename();
-      }, 100);
-    });
-    // 阻止行点击事件
-    div.onclick = (e) => e.stopPropagation();
-    requestAnimationFrame(() => {
-      input.focus();
-      input.select();
-    });
-  } else {
-    const name = document.createElement('span');
-    name.className = 'tree-name';
-    name.textContent = node.name;
-    div.appendChild(name);
-
-    // 活动标记
-    if (isActive) {
-      const badge = document.createElement('span');
-      badge.className = 'tree-badge'; badge.textContent = '●';
-      div.appendChild(badge);
+      }
     }
 
-    // 单击事件
-    div.onclick = (e) => {
+    /** 控制中间工作区和右侧预设栏的可见性 */
+    function updateWorkspaceVisibility() {
+      const preset = document.getElementById('preset-panel');
+      const presetHidden = document.getElementById('preset-hidden-bar');
+      const presetResizer = document.getElementById('preset-resizer');
+      const empty = document.getElementById('empty-state');
+      const receive = document.getElementById('receive-area');
+      const send = document.getElementById('send-area');
+      const fileEditor = document.getElementById('file-editor');
+      const connection = document.getElementById('connection-bar');
+
+      if (state.activeFilePath) {
+        // 文件编辑模式
+        connection.style.display = 'none';
+        preset.style.display = 'none'; presetHidden.style.display = 'none'; presetResizer.style.display = 'none';
+        empty.style.display = 'none';
+        receive.style.display = 'none'; send.style.display = 'none';
+        fileEditor.style.display = 'flex';
+      } else if (state.activeSessionId) {
+        // 会话模式
+        connection.style.display = 'block';
+        const pv = state.config.presetPanelVisible !== false;
+        preset.style.display = pv ? 'flex' : 'none';
+        presetResizer.style.display = pv ? 'block' : 'none';
+        presetHidden.style.display = pv ? 'none' : 'flex';
+        empty.style.display = 'none';
+        receive.style.display = 'flex'; send.style.display = 'flex';
+        fileEditor.style.display = 'none';
+      } else {
+        // 无会话: 只显示空状态
+        connection.style.display = 'none';
+        preset.style.display = 'none'; presetHidden.style.display = 'none'; presetResizer.style.display = 'none';
+        empty.style.display = 'flex';
+        receive.style.display = 'none'; send.style.display = 'none';
+        fileEditor.style.display = 'none';
+      }
+    }
+
+    // ============================================================
+    // Tree
+    // ============================================================
+    // ============================================================
+    // Session Tree (VS Code 风格内联编辑)
+    // ============================================================
+    let editingNodeId = null;     // 正在重命名的节点 ID
+    let insertingType = null;     // 'session' | 'folder' — 正在新建
+    let insertParentId = null;    // 新建时的父节点 ID (null=根)
+    let treeClickTimer = null;
+    let renameGuardUntil = 0;
+
+    function beginRename(nodeId) {
       clearTimeout(treeClickTimer);
-      if (e.detail > 1) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (node.kind !== 'file') {
-          beginRename(node.id);
+      selectedNodeId = nodeId;
+      editingNodeId = nodeId;
+      renameGuardUntil = Date.now() + 800;
+      renderTree();
+    }
+
+    function renderTree() {
+      const container = document.getElementById('session-tree');
+      container.innerHTML = '';
+      if (!state.tree || state.tree.length === 0) {
+        container.innerHTML = '<div class="empty-tree"><div style="font-size:28px">📭</div><div>还没有会话</div><div>点 ＋ 创建第一个会话</div></div>';
+        // 如果正在根下新建，即使树为空也显示输入行
+        if (insertingType && insertParentId === null) {
+          container.innerHTML = '';
+          container.appendChild(createTreeRow({ __ghost: true, kind: insertingType }, 0));
         }
         return;
       }
-      treeClickTimer = setTimeout(() => {
-        treeClickTimer = null;
-        if (editingNodeId) return;
-        selectedNodeId = node.id;
-        if (node.kind === 'session') loadSession(node.id);
-        else if (node.kind === 'file') openFile(node.id);
-        else { node.expanded = !node.expanded; renderTree(); }
-      }, 280);
-    };
-    // 双击由 click.detail 分流处理；这里仅阻止浏览器默认选中文本。
-    div.ondblclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-    // 右键菜单
-    div.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e, node); };
-  }
-
-  if (node.id === selectedNodeId) div.classList.add('selected');
-  if (isActive && !isEditing) div.classList.add('active');
-
-  // 拖拽
-  if (!isEditing) {
-    div.ondragstart = (e) => { e.dataTransfer.setData('text/plain', node.id); };
-    if (node.kind === 'folder') {
-      div.ondragover = (e) => { e.preventDefault(); e.stopPropagation(); div.classList.add('drag-over'); };
-      div.ondragleave = () => div.classList.remove('drag-over');
-      div.ondrop = (e) => {
-        e.preventDefault(); e.stopPropagation(); div.classList.remove('drag-over');
-        const draggedId = e.dataTransfer.getData('text/plain');
-        if (draggedId && draggedId !== node.id) rpc('move_node', { nodeId: draggedId, targetId: node.id }).catch(console.error);
-      };
+      for (const node of state.tree) container.appendChild(createTreeRow(node, 0));
+      // 在根层级插入
+      if (insertingType && insertParentId === null) {
+        container.appendChild(createTreeRow({ __ghost: true, kind: insertingType }, 0));
+      }
     }
-  }
 
-  const wrapper = document.createElement('div');
-  wrapper.appendChild(div);
+    function createTreeRow(node, depth) {
+      const isGhost = node.__ghost === true;
 
-  // 子节点
-  if (node.kind === 'folder' && node.expanded && node.children) {
-    for (const child of node.children) wrapper.appendChild(createTreeRow(child, depth + 1));
-    // 如果正在此目录下新建
-    if (insertingType && insertParentId === node.id) {
-      wrapper.appendChild(createTreeRow({ __ghost: true, kind: insertingType }, depth + 1));
+      // Ghost: 内联新建行
+      if (isGhost) {
+        const wrapper = document.createElement('div');
+        const row = document.createElement('div');
+        row.className = 'tree-row';
+        row.style.paddingLeft = (8 + depth * 12) + 'px';
+        // 图标
+        const icon = document.createElement('span');
+        icon.className = 'tree-icon';
+        icon.textContent = node.kind === 'folder' ? '📁' : '📄';
+        row.appendChild(icon);
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = node.kind === 'folder' ? '目录名称' : '会话名称';
+        input.style.cssText = 'flex:1;min-width:0';
+        row.appendChild(input);
+        wrapper.appendChild(row);
+
+        // 自动聚焦
+        setTimeout(() => input.focus(), 50);
+
+        let committed = false;
+        const commit = () => {
+          if (committed) return; // 防止 Enter + blur 双重触发
+          committed = true;
+          const name = input.value.trim();
+          if (!name) { clearEditingState(); renderTree(); return; }
+          if (node.kind === 'session') {
+            rpc('new_session', { name, parentId: insertParentId })
+              .then(() => { clearEditingState(); })
+              .catch(e => { toast('创建失败: ' + e.message, 'error'); clearEditingState(); renderTree(); });
+          } else {
+            rpc('new_folder', { name, parentId: insertParentId })
+              .then(() => { clearEditingState(); })
+              .catch(e => { toast('创建失败: ' + e.message, 'error'); clearEditingState(); renderTree(); });
+          }
+        };
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commit(); }
+          if (e.key === 'Escape') { e.preventDefault(); committed = true; clearEditingState(); renderTree(); }
+        });
+        input.addEventListener('blur', () => {
+          setTimeout(() => {
+            if (!committed && insertingType !== null) { commit(); }
+          }, 100);
+        });
+        // 阻止点击冒泡
+        row.onclick = (e) => e.stopPropagation();
+        // 阻止拖拽
+        row.draggable = false;
+        return wrapper;
+      }
+
+      // ---- 普通节点 ----
+      const isEditing = node.id === editingNodeId;
+
+      const div = document.createElement('div');
+      div.className = 'tree-row';
+      div.style.paddingLeft = (8 + depth * 12) + 'px';
+      div.draggable = !isEditing;
+
+      // 箭头 (仅目录)
+      if (node.kind === 'folder') {
+        const arrow = document.createElement('span');
+        arrow.textContent = node.expanded ? '▾' : '▸';
+        arrow.style.cssText = 'width:14px;font-size:10px;color:var(--text3);flex-shrink:0;cursor:pointer';
+        arrow.onclick = (e) => { e.stopPropagation(); node.expanded = !node.expanded; renderTree(); };
+        div.appendChild(arrow);
+      }
+
+      // 图标
+      const icon = document.createElement('span');
+      icon.className = 'tree-icon';
+      icon.textContent = node.kind === 'folder' ? (node.expanded ? '📂' : '📁') : node.kind === 'session' ? '📄' : '📝';
+      const isActive = (node.kind === 'session' && node.sessionId === state.activeSessionId) || (node.kind === 'file' && node.filePath === state.activeFilePath);
+      if (isActive) icon.style.color = node.kind === 'session' ? 'var(--green)' : 'var(--orange)';
+      div.appendChild(icon);
+
+      // 名称 或 编辑框
+      if (isEditing) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = node.name;
+        input.style.cssText = 'flex:1;min-width:0';
+        div.appendChild(input);
+
+        const commitRename = () => {
+          const newName = input.value.trim();
+          const oldName = node.name;
+          clearEditingState();
+          if (newName && newName !== oldName) {
+            rpc('rename_node', { nodeId: node.id, newName }).catch(console.error);
+          }
+          renderTree();
+        };
+
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commitRename(); }
+          if (e.key === 'Escape') { e.preventDefault(); clearEditingState(); renderTree(); }
+        });
+        input.addEventListener('blur', () => {
+          setTimeout(() => {
+            if (editingNodeId !== node.id) return;
+            if (Date.now() < renameGuardUntil) {
+              input.focus();
+              input.select();
+              return;
+            }
+            commitRename();
+          }, 100);
+        });
+        // 阻止行点击事件
+        div.onclick = (e) => e.stopPropagation();
+        requestAnimationFrame(() => {
+          input.focus();
+          input.select();
+        });
+      } else {
+        const name = document.createElement('span');
+        name.className = 'tree-name';
+        name.textContent = node.name;
+        div.appendChild(name);
+
+        // 活动标记
+        if (isActive) {
+          const badge = document.createElement('span');
+          badge.className = 'tree-badge'; badge.textContent = '●';
+          div.appendChild(badge);
+        }
+
+        // 单击事件
+        div.onclick = (e) => {
+          clearTimeout(treeClickTimer);
+          if (e.detail > 1) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (node.kind !== 'file') {
+              beginRename(node.id);
+            }
+            return;
+          }
+          treeClickTimer = setTimeout(() => {
+            treeClickTimer = null;
+            if (editingNodeId) return;
+            selectedNodeId = node.id;
+            if (node.kind === 'session') loadSession(node.id);
+            else if (node.kind === 'file') openFile(node.id);
+            else { node.expanded = !node.expanded; renderTree(); }
+          }, 280);
+        };
+        // 双击由 click.detail 分流处理；这里仅阻止浏览器默认选中文本。
+        div.ondblclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        };
+        // 右键菜单
+        div.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e, node); };
+      }
+
+      if (node.id === selectedNodeId) div.classList.add('selected');
+      if (isActive && !isEditing) div.classList.add('active');
+
+      // 拖拽
+      if (!isEditing) {
+        div.ondragstart = (e) => { e.dataTransfer.setData('text/plain', node.id); };
+        if (node.kind === 'folder') {
+          div.ondragover = (e) => { e.preventDefault(); e.stopPropagation(); div.classList.add('drag-over'); };
+          div.ondragleave = () => div.classList.remove('drag-over');
+          div.ondrop = (e) => {
+            e.preventDefault(); e.stopPropagation(); div.classList.remove('drag-over');
+            const draggedId = e.dataTransfer.getData('text/plain');
+            if (draggedId && draggedId !== node.id) rpc('move_node', { nodeId: draggedId, targetId: node.id }).catch(console.error);
+          };
+        }
+      }
+
+      const wrapper = document.createElement('div');
+      wrapper.appendChild(div);
+
+      // 子节点
+      if (node.kind === 'folder' && node.expanded && node.children) {
+        for (const child of node.children) wrapper.appendChild(createTreeRow(child, depth + 1));
+        // 如果正在此目录下新建
+        if (insertingType && insertParentId === node.id) {
+          wrapper.appendChild(createTreeRow({ __ghost: true, kind: insertingType }, depth + 1));
+        }
+      }
+
+      return wrapper;
     }
-  }
 
-  return wrapper;
-}
-
-function clearEditingState() {
-  editingNodeId = null;
-  insertingType = null;
-  insertParentId = null;
-  renameGuardUntil = 0;
-}
-
-function findFirstSession(nodes) {
-  for (const n of nodes) { if (n.kind === 'session') return n; const r = findFirstSession(n.children || []); if (r) return r; }
-  return null;
-}
-
-function findNode(id) {
-  function _find(nodes) { for (const n of nodes) { if (n.id === id) return n; const r = _find(n.children || []); if (r) return r; } return null; }
-  return _find(state.tree);
-}
-
-function loadSession(nodeId) { rpc('load_session', { nodeId }).catch(e => toast('加载会话失败: ' + e.message, 'error')); }
-
-function refreshSessionTree(loadFirst) {
-  rpc('get_tree').then(res => {
-    state.tree = res.tree || [];
-    state.activeSessionId = res.activeSessionId || null;
-    state.activeFilePath = res.activeFilePath || null;
-    state.logEntries = res.logEntries || state.logEntries;
-    clearEditingState();
-    applyState();
-    if (loadFirst) {
-      const first = findFirstSession(state.tree);
-      if (first) loadSession(first.id);
+    function clearEditingState() {
+      editingNodeId = null;
+      insertingType = null;
+      insertParentId = null;
+      renameGuardUntil = 0;
     }
-    toast('会话树已刷新', 'success');
-  }).catch(e => toast('刷新会话树失败: ' + e.message, 'error'));
-}
 
-/** 开始新建 — 设置插入状态并刷新树 */
-function startInsert(type) {
-  clearEditingState();
-  insertingType = type;
-  // 确定父节点：如果选中的是文件夹 → 在文件夹内创建；否则在根下
-  const sel = selectedNodeId ? findNode(selectedNodeId) : null;
-  insertParentId = (sel && sel.kind === 'folder') ? sel.id : null;
-  // 确保父目录展开
-  if (sel && sel.kind === 'folder') sel.expanded = true;
-  renderTree();
-}
-
-function newSession() { startInsert('session'); }
-function newFolder() { startInsert('folder'); }
-
-function deleteNode(node) {
-  const msg = node.kind === 'folder'
-    ? `确定删除目录 "${node.name}" 及其所有内容?`
-    : `确定删除 "${node.name}"?`;
-  if (confirm(msg)) rpc('delete_node', { nodeId: node.id }).catch(console.error);
-}
-
-function showContextMenu(e, node) {
-  const menu = document.getElementById('ctx-menu');
-  let html = '';
-  if (node.kind === 'folder') {
-    html += `<button class="ctx-item" onclick="selectedNodeId='${node.id}';startInsert('session');hideCtxMenu()">📄 新建会话</button>`;
-    html += `<button class="ctx-item" onclick="selectedNodeId='${node.id}';startInsert('folder');hideCtxMenu()">📁 新建子目录</button>`;
-    html += '<div class="ctx-divider"></div>';
-  }
-  html += `<button class="ctx-item" onclick="beginRename('${node.id}');hideCtxMenu()">✏️ 重命名</button>`;
-  html += '<div class="ctx-divider"></div>';
-  html += `<button class="ctx-item danger" onclick="hideCtxMenu();deleteNode(findNode('${node.id}'));">🗑 删除</button>`;
-  menu.innerHTML = html;
-  menu.style.display = 'block'; menu.style.left = e.clientX + 'px'; menu.style.top = e.clientY + 'px';
-  setTimeout(() => document.addEventListener('click', hideCtxMenu, { once: true }), 0);
-}
-function hideCtxMenu() { document.getElementById('ctx-menu').style.display = 'none'; }
-
-// Root drop target
-(function() {
-  const tree = document.getElementById('session-tree');
-  tree.ondragover = (e) => e.preventDefault();
-  tree.ondrop = (e) => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) rpc('move_node', { nodeId: id, targetId: null }).catch(console.error); };
-})();
-
-// ============================================================
-// Presets
-// ============================================================
-function renderPresets() {
-  const container = document.getElementById('preset-list');
-  container.innerHTML = '';
-  if (!state.presets || state.presets.length === 0) {
-    container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">暂无预设分组</div>';
-    return;
-  }
-  for (const g of state.presets) {
-    const gd = document.createElement('div'); gd.className = 'preset-group';
-    const h = document.createElement('div'); h.className = 'preset-group-header';
-    h.innerHTML = `<span style="font-size:10px;color:var(--text3)">▾</span><span>📁 ${escHtml(g.name)}</span><span style="flex:1"></span><span style="font-size:10px;color:var(--text3)">${g.commands.length}</span><button class="btn-icon" style="font-size:10px" onclick="event.stopPropagation();addCommandToGroup('${g.id}')">＋</button>`;
-    h.onclick = () => { selectedGroupId = g.id; };
-    h.oncontextmenu = (e) => { e.preventDefault(); if(confirm('删除分组 "'+g.name+'"?')) rpc('remove_group',{id:g.id}).catch(console.error); };
-    gd.appendChild(h);
-    for (const cmd of g.commands) {
-      const cd = document.createElement('div'); cd.className = 'preset-cmd';
-      cd.innerHTML = `<span style="font-size:11px;flex-shrink:0">${cmd.displayMode==='hex'?'🔢':'📝'}</span><div class="cmd-info"><div class="cmd-name">${escHtml(cmd.name)}${cmd.hotkey?`<span class="cmd-hotkey">⌘${cmd.hotkey}</span>`:''}</div><div class="cmd-payload">${escHtml(cmd.payload)}</div></div><span style="font-size:11px;color:var(--text3)">📨</span>`;
-      cd.onclick = () => sendPreset(cmd);
-      cd.oncontextmenu = (e) => { e.preventDefault(); showCommandEditor(cmd, g.id); };
-      gd.appendChild(cd);
+    function findFirstSession(nodes) {
+      for (const n of nodes) { if (n.kind === 'session') return n; const r = findFirstSession(n.children || []); if (r) return r; }
+      return null;
     }
-    container.appendChild(gd);
-  }
-}
 
-function addGroup() { const name = prompt('分组名称:'); if (name && name.trim()) rpc('add_group', { name: name.trim() }).catch(console.error); }
-function addCommand() {
-  if (!state.presets || state.presets.length === 0) { toast('请先创建分组','warn'); return; }
-  addCommandToGroup(selectedGroupId || state.presets[0].id);
-}
-function addCommandToGroup(gid) { selectedGroupId = gid; showCommandEditor(null, gid); }
+    function findNode(id) {
+      function _find(nodes) { for (const n of nodes) { if (n.id === id) return n; const r = _find(n.children || []); if (r) return r; } return null; }
+      return _find(state.tree);
+    }
 
-function showCommandEditor(existing, groupId) {
-  const isNew = !existing;
-  const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
-  overlay.innerHTML = `
+    function loadSession(nodeId) { rpc('load_session', { nodeId }).catch(e => toast('加载会话失败: ' + e.message, 'error')); }
+
+    function refreshSessionTree(loadFirst) {
+      rpc('get_tree').then(res => {
+        state.tree = res.tree || [];
+        state.activeSessionId = res.activeSessionId || null;
+        state.activeFilePath = res.activeFilePath || null;
+        state.logEntries = res.logEntries || state.logEntries;
+        clearEditingState();
+        applyState();
+        if (loadFirst) {
+          const first = findFirstSession(state.tree);
+          if (first) loadSession(first.id);
+        }
+        toast('会话树已刷新', 'success');
+      }).catch(e => toast('刷新会话树失败: ' + e.message, 'error'));
+    }
+
+    /** 开始新建 — 设置插入状态并刷新树 */
+    function startInsert(type) {
+      clearEditingState();
+      insertingType = type;
+      // 确定父节点：如果选中的是文件夹 → 在文件夹内创建；否则在根下
+      const sel = selectedNodeId ? findNode(selectedNodeId) : null;
+      insertParentId = (sel && sel.kind === 'folder') ? sel.id : null;
+      // 确保父目录展开
+      if (sel && sel.kind === 'folder') sel.expanded = true;
+      renderTree();
+    }
+
+    function newSession() { startInsert('session'); }
+    function newFolder() { startInsert('folder'); }
+
+    function deleteNode(node) {
+      const msg = node.kind === 'folder'
+        ? `确定删除目录 "${node.name}" 及其所有内容?`
+        : `确定删除 "${node.name}"?`;
+      if (confirm(msg)) rpc('delete_node', { nodeId: node.id }).catch(console.error);
+    }
+
+    function showContextMenu(e, node) {
+      const menu = document.getElementById('ctx-menu');
+      let html = '';
+      if (node.kind === 'folder') {
+        html += `<button class="ctx-item" onclick="selectedNodeId='${node.id}';startInsert('session');hideCtxMenu()">📄 新建会话</button>`;
+        html += `<button class="ctx-item" onclick="selectedNodeId='${node.id}';startInsert('folder');hideCtxMenu()">📁 新建子目录</button>`;
+        html += '<div class="ctx-divider"></div>';
+      }
+      html += `<button class="ctx-item" onclick="beginRename('${node.id}');hideCtxMenu()">✏️ 重命名</button>`;
+      html += '<div class="ctx-divider"></div>';
+      html += `<button class="ctx-item danger" onclick="hideCtxMenu();deleteNode(findNode('${node.id}'));">🗑 删除</button>`;
+      menu.innerHTML = html;
+      menu.style.display = 'block'; menu.style.left = e.clientX + 'px'; menu.style.top = e.clientY + 'px';
+      setTimeout(() => document.addEventListener('click', hideCtxMenu, { once: true }), 0);
+    }
+    function hideCtxMenu() { document.getElementById('ctx-menu').style.display = 'none'; }
+
+    // Root drop target
+    (function () {
+      const tree = document.getElementById('session-tree');
+      tree.ondragover = (e) => e.preventDefault();
+      tree.ondrop = (e) => { e.preventDefault(); const id = e.dataTransfer.getData('text/plain'); if (id) rpc('move_node', { nodeId: id, targetId: null }).catch(console.error); };
+    })();
+
+    // ============================================================
+    // Presets
+    // ============================================================
+    function renderPresets() {
+      const container = document.getElementById('preset-list');
+      container.innerHTML = '';
+      if (!state.presets || state.presets.length === 0) {
+        container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">暂无预设分组</div>';
+        return;
+      }
+      for (const g of state.presets) {
+        const gd = document.createElement('div'); gd.className = 'preset-group';
+        const h = document.createElement('div'); h.className = 'preset-group-header';
+        h.innerHTML = `<span style="font-size:10px;color:var(--text3)">▾</span><span>📁 ${escHtml(g.name)}</span><span style="flex:1"></span><span style="font-size:10px;color:var(--text3)">${g.commands.length}</span><button class="btn-icon" style="font-size:10px" onclick="event.stopPropagation();addCommandToGroup('${g.id}')">＋</button>`;
+        h.onclick = () => { selectedGroupId = g.id; };
+        h.oncontextmenu = (e) => { e.preventDefault(); if (confirm('删除分组 "' + g.name + '"?')) rpc('remove_group', { id: g.id }).catch(console.error); };
+        gd.appendChild(h);
+        for (const cmd of g.commands) {
+          const cd = document.createElement('div'); cd.className = 'preset-cmd';
+          cd.innerHTML = `<span style="font-size:11px;flex-shrink:0">${cmd.displayMode === 'hex' ? '🔢' : '📝'}</span><div class="cmd-info"><div class="cmd-name">${escHtml(cmd.name)}${cmd.hotkey ? `<span class="cmd-hotkey">⌘${cmd.hotkey}</span>` : ''}</div><div class="cmd-payload">${escHtml(cmd.payload)}</div></div><span style="font-size:11px;color:var(--text3)">📨</span>`;
+          cd.onclick = () => sendPreset(cmd);
+          cd.oncontextmenu = (e) => { e.preventDefault(); showCommandEditor(cmd, g.id); };
+          gd.appendChild(cd);
+        }
+        container.appendChild(gd);
+      }
+    }
+
+    function addGroup() { const name = prompt('分组名称:'); if (name && name.trim()) rpc('add_group', { name: name.trim() }).catch(console.error); }
+    function addCommand() {
+      if (!state.presets || state.presets.length === 0) { toast('请先创建分组', 'warn'); return; }
+      addCommandToGroup(selectedGroupId || state.presets[0].id);
+    }
+    function addCommandToGroup(gid) { selectedGroupId = gid; showCommandEditor(null, gid); }
+
+    function showCommandEditor(existing, groupId) {
+      const isNew = !existing;
+      const overlay = document.createElement('div'); overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
     <div class="modal">
       <h3>${isNew ? '新增指令' : '编辑指令'}</h3>
       <div class="form-group"><label>名称</label><input type="text" id="cmd-name" value="${escHtml(existing?.name || '')}"></div>
-      <div class="form-group"><label>格式</label><select id="cmd-mode"><option value="ascii" ${(!existing||existing.displayMode==='ascii')?'selected':''}>ASCII</option><option value="hex" ${existing&&existing.displayMode==='hex'?'selected':''}>HEX</option></select></div>
+      <div class="form-group"><label>格式</label><select id="cmd-mode"><option value="ascii" ${(!existing || existing.displayMode === 'ascii') ? 'selected' : ''}>ASCII</option><option value="hex" ${existing && existing.displayMode === 'hex' ? 'selected' : ''}>HEX</option></select></div>
       <div class="form-group"><label>指令内容</label><textarea id="cmd-payload">${escHtml(existing?.payload || '')}</textarea></div>
-      <div class="form-row"><label class="checkbox-row"><input type="checkbox" id="cmd-newline" ${existing?.appendNewline?'checked':''}>发送时追加 \\r\\n</label></div>
-      <div class="form-row"><label class="checkbox-row"><input type="checkbox" id="cmd-use-hotkey" ${existing?.hotkey?'checked':''}>绑定快捷键</label><select id="cmd-hotkey" ${existing?.hotkey?'':'disabled'}>${[1,2,3,4,5,6,7,8,9].map(n=>`<option value="${n}" ${existing?.hotkey===n?'selected':''}>⌘${n}</option>`).join('')}</select></div>
-      <div class="btn-row"><button class="btn" onclick="this.closest('.modal-overlay').remove()">取消</button><button class="btn btn-primary" id="cmd-save-btn">${isNew?'新增':'保存'}</button></div>
+      <div class="form-row"><label class="checkbox-row"><input type="checkbox" id="cmd-newline" ${existing?.appendNewline ? 'checked' : ''}>发送时追加 \\r\\n</label></div>
+      <div class="form-row"><label class="checkbox-row"><input type="checkbox" id="cmd-use-hotkey" ${existing?.hotkey ? 'checked' : ''}>绑定快捷键</label><select id="cmd-hotkey" ${existing?.hotkey ? '' : 'disabled'}>${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<option value="${n}" ${existing?.hotkey === n ? 'selected' : ''}>⌘${n}</option>`).join('')}</select></div>
+      <div class="btn-row"><button class="btn" onclick="this.closest('.modal-overlay').remove()">取消</button><button class="btn btn-primary" id="cmd-save-btn">${isNew ? '新增' : '保存'}</button></div>
     </div>`;
-  document.body.appendChild(overlay);
-  overlay.querySelector('#cmd-use-hotkey').onchange = function() { overlay.querySelector('#cmd-hotkey').disabled = !this.checked; };
-  overlay.querySelector('#cmd-save-btn').onclick = () => {
-    const name = overlay.querySelector('#cmd-name').value.trim(), payload = overlay.querySelector('#cmd-payload').value;
-    if (!name || !payload.trim()) return;
-    const cmd = { name, payload, displayMode: overlay.querySelector('#cmd-mode').value, appendNewline: overlay.querySelector('#cmd-newline').checked, hotkey: overlay.querySelector('#cmd-use-hotkey').checked ? parseInt(overlay.querySelector('#cmd-hotkey').value) : null };
-    if (isNew) rpc('add_command', { command: cmd, groupId }).then(() => overlay.remove()).catch(console.error);
-    else { cmd.id = existing.id; rpc('update_command', { command: cmd, groupId }).then(() => overlay.remove()).catch(console.error); }
-  };
-  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-}
-
-function sendPreset(cmd) {
-  if (!state.serialOpen) { toast('请先连接串口', 'warn'); return; }
-  rpc('send_preset', { command: cmd }).catch(console.error);
-}
-
-// ============================================================
-// Receive Log
-// ============================================================
-function renderLogs() {
-  const container = document.getElementById('receive-log');
-  const mode = document.querySelector('#receive-mode button.active')?.dataset?.mode || 'text';
-  const showMixed = document.getElementById('receive-mixed').checked;
-  const showTs = document.getElementById('show-timestamp').checked;
-  const autoScroll = document.getElementById('auto-scroll').checked;
-  document.getElementById('log-count').textContent = state.logEntries.length + ' 条';
-
-  // 全量重渲染检测
-  if (container.children.length > state.logEntries.length || (container.children.length > 0 && state.logEntries.length === 0)) {
-    container.innerHTML = '';
-  }
-  const startIdx = container.children.length;
-  for (let i = startIdx; i < state.logEntries.length; i++) {
-    const entry = state.logEntries[i];
-    const row = document.createElement('div'); row.className = 'log-row';
-    if (showTs) { const ts = document.createElement('span'); ts.className = 'log-ts'; ts.textContent = new Date(entry.timestamp).toLocaleTimeString('en-GB',{hour12:false})+'.'+String(new Date(entry.timestamp).getMilliseconds()).padStart(3,'0'); row.appendChild(ts); }
-    const dir = document.createElement('span'); dir.className = 'log-dir '+(entry.direction==='RX'?'rx':'tx'); dir.textContent = entry.direction==='RX'?'◀ RX':'▶ TX'; row.appendChild(dir);
-    const hexStr = entry.data.map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join(' ');
-    if (mode === 'hex') {
-      const hx = document.createElement('span'); hx.className='log-ascii'; hx.textContent=hexStr; row.appendChild(hx);
-    } else {
-      const asciiStr = entry.data.map(b=>(b>=0x20&&b<=0x7E)?String.fromCharCode(b):'.').join('');
-      const wrap = document.createElement('div'); wrap.className='log-mixed';
-      const a = document.createElement('span'); a.className='log-ascii'; a.textContent=asciiStr; wrap.appendChild(a);
-      if (showMixed) { const h = document.createElement('span'); h.className='log-hex'; h.textContent=hexStr; wrap.appendChild(h); }
-      row.appendChild(wrap);
+      document.body.appendChild(overlay);
+      overlay.querySelector('#cmd-use-hotkey').onchange = function () { overlay.querySelector('#cmd-hotkey').disabled = !this.checked; };
+      overlay.querySelector('#cmd-save-btn').onclick = () => {
+        const name = overlay.querySelector('#cmd-name').value.trim(), payload = overlay.querySelector('#cmd-payload').value;
+        if (!name || !payload.trim()) return;
+        const cmd = { name, payload, displayMode: overlay.querySelector('#cmd-mode').value, appendNewline: overlay.querySelector('#cmd-newline').checked, hotkey: overlay.querySelector('#cmd-use-hotkey').checked ? parseInt(overlay.querySelector('#cmd-hotkey').value) : null };
+        if (isNew) rpc('add_command', { command: cmd, groupId }).then(() => overlay.remove()).catch(console.error);
+        else { cmd.id = existing.id; rpc('update_command', { command: cmd, groupId }).then(() => overlay.remove()).catch(console.error); }
+      };
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
     }
-    container.appendChild(row);
-  }
-  while (container.children.length > 5000) container.removeChild(container.firstChild);
-  if (autoScroll && container.lastChild) container.lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
-}
 
-function clearLogs() { rpc('clear_logs').catch(console.error); }
-function exportLogs() {
-  rpc('export_logs').then(res => {
-    let text = '';
-    for (const e of (res.entries||[])) {
-      const ts = new Date(e.timestamp).toISOString();
-      const ascii = e.data.map(b=>(b>=0x20&&b<=0x7E)?String.fromCharCode(b):'.').join('');
-      const hex = e.data.map(b=>b.toString(16).toUpperCase().padStart(2,'0')).join(' ');
-      text += `[${ts}] ${e.direction} | ASCII: ${ascii}\n                   HEX: ${hex}\n`;
+    function sendPreset(cmd) {
+      if (!state.serialOpen) { toast('请先连接串口', 'warn'); return; }
+      rpc('send_preset', { command: cmd }).catch(console.error);
     }
-    const blob = new Blob([text],{type:'text/plain'});
-    const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
-    a.download=`serialport-tool-log-${new Date().toISOString().replace(/[:.]/g,'-').slice(0,19)}.txt`; a.click();
-    toast('日志已导出', 'success');
-  }).catch(console.error);
-}
 
-// ============================================================
-// Connection
-// ============================================================
-async function refreshDevices() {
-  const sel = document.getElementById('device-select');
-  sel.innerHTML = '<option value="">— 正在扫描串口 —</option>';
-  sel.title = '';
-  try {
-    const res = await rpc('list_devices');
-    const devices = res.devices || [];
-    state.serialPortStatus = res.serialPortStatus || state.serialPortStatus;
+    // ============================================================
+    // Receive Log
+    // ============================================================
+    function renderLogs() {
+      const container = document.getElementById('receive-log');
+      const mode = document.querySelector('#receive-mode button.active')?.dataset?.mode || 'text';
+      const showMixed = document.getElementById('receive-mixed').checked;
+      const showTs = document.getElementById('show-timestamp').checked;
+      const autoScroll = document.getElementById('auto-scroll').checked;
+      document.getElementById('log-count').textContent = state.logEntries.length + ' 条';
 
-    // 检查串口模块可用性
-    if (state.serialPortStatus && !state.serialPortStatus.available) {
-      sel.innerHTML = '<option value="">⚠ 串口模块不可用 (需 Node.js)</option>';
-      sel.title = state.serialPortStatus.reason || '';
-    } else if (devices.length === 0) {
-      sel.innerHTML = '<option value="">— 未找到设备 —</option>';
-    } else {
-      sel.innerHTML = '<option value="">— 选择设备 —</option>';
-      for (const d of devices) {
-        const opt = document.createElement('option');
-        opt.value = d.path;
-        opt.textContent = d.path.replace('/dev/', '');
-        sel.appendChild(opt);
+      // 全量重渲染检测
+      if (container.children.length > state.logEntries.length || (container.children.length > 0 && state.logEntries.length === 0)) {
+        container.innerHTML = '';
+      }
+      const startIdx = container.children.length;
+      for (let i = startIdx; i < state.logEntries.length; i++) {
+        const entry = state.logEntries[i];
+        const row = document.createElement('div'); row.className = 'log-row';
+        if (showTs) { const ts = document.createElement('span'); ts.className = 'log-ts'; ts.textContent = new Date(entry.timestamp).toLocaleTimeString('en-GB', { hour12: false }) + '.' + String(new Date(entry.timestamp).getMilliseconds()).padStart(3, '0'); row.appendChild(ts); }
+        const dir = document.createElement('span'); dir.className = 'log-dir ' + (entry.direction === 'RX' ? 'rx' : 'tx'); dir.textContent = entry.direction === 'RX' ? '◀ RX' : '▶ TX'; row.appendChild(dir);
+        const hexStr = entry.data.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+        if (mode === 'hex') {
+          const hx = document.createElement('span'); hx.className = 'log-ascii'; hx.textContent = hexStr; row.appendChild(hx);
+        } else {
+          const asciiStr = entry.data.map(b => (b >= 0x20 && b <= 0x7E) ? String.fromCharCode(b) : '.').join('');
+          const wrap = document.createElement('div'); wrap.className = 'log-mixed';
+          const a = document.createElement('span'); a.className = 'log-ascii'; a.textContent = asciiStr; wrap.appendChild(a);
+          if (showMixed) { const h = document.createElement('span'); h.className = 'log-hex'; h.textContent = hexStr; wrap.appendChild(h); }
+          row.appendChild(wrap);
+        }
+        container.appendChild(row);
+      }
+      while (container.children.length > 5000) container.removeChild(container.firstChild);
+      if (autoScroll && container.lastChild) container.lastChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+
+    function clearLogs() { rpc('clear_logs').catch(console.error); }
+    function exportLogs() {
+      rpc('export_logs').then(res => {
+        let text = '';
+        for (const e of (res.entries || [])) {
+          const ts = new Date(e.timestamp).toISOString();
+          const ascii = e.data.map(b => (b >= 0x20 && b <= 0x7E) ? String.fromCharCode(b) : '.').join('');
+          const hex = e.data.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+          text += `[${ts}] ${e.direction} | ASCII: ${ascii}\n                   HEX: ${hex}\n`;
+        }
+        const blob = new Blob([text], { type: 'text/plain' });
+        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+        a.download = `serialport-tool-log-${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.txt`; a.click();
+        toast('日志已导出', 'success');
+      }).catch(console.error);
+    }
+
+    // ============================================================
+    // Connection
+    // ============================================================
+    async function refreshDevices() {
+      const sel = document.getElementById('device-select');
+      sel.innerHTML = '<option value="">— 正在扫描串口 —</option>';
+      sel.title = '';
+      try {
+        const res = await rpc('list_devices');
+        const devices = res.devices || [];
+        state.serialPortStatus = res.serialPortStatus || state.serialPortStatus;
+
+        // 检查串口模块可用性
+        if (state.serialPortStatus && !state.serialPortStatus.available) {
+          sel.innerHTML = '<option value="">⚠ 串口模块不可用 (需 Node.js)</option>';
+          sel.title = state.serialPortStatus.reason || '';
+        } else if (devices.length === 0) {
+          sel.innerHTML = '<option value="">— 未找到设备 —</option>';
+        } else {
+          sel.innerHTML = '<option value="">— 选择设备 —</option>';
+          for (const d of devices) {
+            const opt = document.createElement('option');
+            opt.value = d.path;
+            opt.textContent = d.path.replace('/dev/', '');
+            sel.appendChild(opt);
+          }
+        }
+        if (state.config.lastDevicePath && devices.some(d => d.path === state.config.lastDevicePath)) {
+          sel.value = state.config.lastDevicePath;
+        }
+        updateConnectionUI();
+      } catch (e) {
+        console.error('list_devices failed:', e);
+        sel.innerHTML = '<option value="">— 扫描暂未完成 —</option>';
+        sel.title = e.message || '';
       }
     }
-    if (state.config.lastDevicePath && devices.some(d => d.path === state.config.lastDevicePath)) {
-      sel.value = state.config.lastDevicePath;
-    }
-    updateConnectionUI();
-  } catch (e) {
-    console.error('list_devices failed:', e);
-    sel.innerHTML = '<option value="">— 扫描暂未完成 —</option>';
-    sel.title = e.message || '';
-  }
-}
 
-function toggleConnect() {
-  if (state.serialOpen) {
-    rpc('close_port').catch(e => toast('断开失败: '+e.message,'error'));
-  } else {
-    const path = document.getElementById('device-select').value;
-    if (!path) {
-      if (state.serialPortStatus && !state.serialPortStatus.available) {
-        toast('串口模块不可用: ' + (state.serialPortStatus.reason || '请使用 Node.js 运行'), 'error');
+    function toggleConnect() {
+      if (state.serialOpen) {
+        rpc('close_port').catch(e => toast('断开失败: ' + e.message, 'error'));
       } else {
-        toast('请先选择串口设备', 'warn');
+        const path = document.getElementById('device-select').value;
+        if (!path) {
+          if (state.serialPortStatus && !state.serialPortStatus.available) {
+            toast('串口模块不可用: ' + (state.serialPortStatus.reason || '请使用 Node.js 运行'), 'error');
+          } else {
+            toast('请先选择串口设备', 'warn');
+          }
+          return;
+        }
+        const config = {
+          baudRate: parseInt(document.getElementById('baudrate-select').value),
+          dataBits: parseInt(document.getElementById('databits-select').value),
+          stopBits: parseInt(document.getElementById('stopbits-select').value),
+          parity: document.getElementById('parity-select').value,
+          flowControl: document.getElementById('flowctrl-select').value,
+          lineEnding: document.getElementById('send-crlf').checked ? 'crlf' : 'none',
+          localEcho: document.getElementById('local-echo').checked,
+          showTimestamp: document.getElementById('show-timestamp').checked,
+        };
+        rpc('open_port', { device: { path }, config }).catch(e => toast('连接失败: ' + e.message, 'error'));
       }
-      return;
     }
-    const config = {
-      baudRate: parseInt(document.getElementById('baudrate-select').value),
-      dataBits: parseInt(document.getElementById('databits-select').value),
-      stopBits: parseInt(document.getElementById('stopbits-select').value),
-      parity: document.getElementById('parity-select').value,
-      flowControl: document.getElementById('flowctrl-select').value,
-      lineEnding: document.getElementById('send-crlf').checked ? 'crlf' : 'none',
-      localEcho: document.getElementById('local-echo').checked,
-      showTimestamp: document.getElementById('show-timestamp').checked,
-    };
-    rpc('open_port', { device: { path }, config }).catch(e => toast('连接失败: '+e.message,'error'));
-  }
-}
 
-// ============================================================
-// Send
-// ============================================================
-function sendData() {
-  const input = document.getElementById('send-input');
-  const text = input.value;
-  if (!text.trim()) return;
-  const mode = document.querySelector('#send-mode button.active')?.dataset?.mode || 'ascii';
-  if (mode === 'hex') {
-    const tokens = text.split(/[\s,\n\t]+/).filter(Boolean);
-    if (!tokens.every(t => /^[0-9a-fA-F]{1,2}$/.test(t))) { toast('HEX 格式错误', 'error'); return; }
-  }
-  const appendNewline = document.getElementById('send-crlf').checked;
-  const localEcho = document.getElementById('local-echo').checked;
-  rpc('send_data', { text, mode, appendNewline, localEcho }).then(res => {
-    if (res && res.error) toast(res.error, 'error');
-  }).catch(console.error);
-}
-
-// ============================================================
-// File Editor
-// ============================================================
-function openFile(nodeId) {
-  rpc('open_file', { nodeId }).then(res => {
-    if (res.content !== undefined) {
-      document.getElementById('file-editor-name').textContent = res.fileName;
-      document.getElementById('file-editor-textarea').value = res.content;
-      document.getElementById('file-editor-info').textContent = `${res.content.split('\n').length} 行 · ${res.content.length} 字节`;
-      state.activeFilePath = res.activeFilePath; state.activeSessionId = null;
-      updateWorkspaceVisibility();
+    // ============================================================
+    // Send
+    // ============================================================
+    function sendData() {
+      const input = document.getElementById('send-input');
+      const text = input.value;
+      if (!text.trim()) return;
+      const mode = document.querySelector('#send-mode button.active')?.dataset?.mode || 'ascii';
+      if (mode === 'hex') {
+        const tokens = text.split(/[\s,\n\t]+/).filter(Boolean);
+        if (!tokens.every(t => /^[0-9a-fA-F]{1,2}$/.test(t))) { toast('HEX 格式错误', 'error'); return; }
+      }
+      const appendNewline = document.getElementById('send-crlf').checked;
+      const localEcho = document.getElementById('local-echo').checked;
+      rpc('send_data', { text, mode, appendNewline, localEcho }).then(res => {
+        if (res && res.error) toast(res.error, 'error');
+      }).catch(console.error);
     }
-  }).catch(console.error);
-}
-function saveFile() {
-  const content = document.getElementById('file-editor-textarea').value;
-  rpc('save_file', { content }).then(() => {
-    document.getElementById('file-editor-info').textContent = `${content.split('\n').length} 行 · ${content.length} 字节`;
-  }).catch(console.error);
-}
-// File auto-save
-let fileSaveTimer;
-document.addEventListener('DOMContentLoaded', () => {
-  const ta = document.getElementById('file-editor-textarea');
-  if (ta) ta.addEventListener('input', () => { clearTimeout(fileSaveTimer); fileSaveTimer = setTimeout(() => { if (state.activeFilePath) saveFile(); }, 500); });
-});
 
-// ============================================================
-// Sidebar Toggle
-// ============================================================
-function toggleSessionSidebar() {
-  const visible = document.getElementById('session-sidebar').style.display !== 'none';
-  document.getElementById('session-sidebar').style.display = visible ? 'none' : 'flex';
-  document.getElementById('session-resizer').style.display = visible ? 'none' : 'block';
-  document.getElementById('session-hidden-bar').style.display = visible ? 'flex' : 'none';
-  rpc('update_config', { sessionPanelVisible: !visible }).catch(console.error);
-}
-function togglePresetSidebar() {
-  const visible = document.getElementById('preset-panel').style.display !== 'none';
-  document.getElementById('preset-panel').style.display = visible ? 'none' : 'flex';
-  document.getElementById('preset-resizer').style.display = visible ? 'none' : 'block';
-  document.getElementById('preset-hidden-bar').style.display = visible ? 'flex' : 'none';
-  rpc('update_config', { presetPanelVisible: !visible }).catch(console.error);
-}
+    // ============================================================
+    // File Editor
+    // ============================================================
+    function openFile(nodeId) {
+      rpc('open_file', { nodeId }).then(res => {
+        if (res.content !== undefined) {
+          document.getElementById('file-editor-name').textContent = res.fileName;
+          document.getElementById('file-editor-textarea').value = res.content;
+          document.getElementById('file-editor-info').textContent = `${res.content.split('\n').length} 行 · ${res.content.length} 字节`;
+          state.activeFilePath = res.activeFilePath; state.activeSessionId = null;
+          updateWorkspaceVisibility();
+        }
+      }).catch(console.error);
+    }
+    function saveFile() {
+      const content = document.getElementById('file-editor-textarea').value;
+      rpc('save_file', { content }).then(() => {
+        document.getElementById('file-editor-info').textContent = `${content.split('\n').length} 行 · ${content.length} 字节`;
+      }).catch(console.error);
+    }
+    // File auto-save
+    let fileSaveTimer;
+    document.addEventListener('DOMContentLoaded', () => {
+      const ta = document.getElementById('file-editor-textarea');
+      if (ta) ta.addEventListener('input', () => { clearTimeout(fileSaveTimer); fileSaveTimer = setTimeout(() => { if (state.activeFilePath) saveFile(); }, 500); });
+    });
 
-function initPanelResizer(resizerId, panelId, configKey, direction) {
-  const resizer = document.getElementById(resizerId);
-  const panel = document.getElementById(panelId);
-  resizer.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startWidth = panel.getBoundingClientRect().width;
-    resizer.classList.add('resizing');
-    document.body.classList.add('resizing-panels');
+    // ============================================================
+    // Sidebar Toggle
+    // ============================================================
+    function toggleSessionSidebar() {
+      const visible = document.getElementById('session-sidebar').style.display !== 'none';
+      document.getElementById('session-sidebar').style.display = visible ? 'none' : 'flex';
+      document.getElementById('session-resizer').style.display = visible ? 'none' : 'block';
+      document.getElementById('session-hidden-bar').style.display = visible ? 'flex' : 'none';
+      rpc('update_config', { sessionPanelVisible: !visible }).catch(console.error);
+    }
+    function togglePresetSidebar() {
+      const visible = document.getElementById('preset-panel').style.display !== 'none';
+      document.getElementById('preset-panel').style.display = visible ? 'none' : 'flex';
+      document.getElementById('preset-resizer').style.display = visible ? 'none' : 'block';
+      document.getElementById('preset-hidden-bar').style.display = visible ? 'flex' : 'none';
+      rpc('update_config', { presetPanelVisible: !visible }).catch(console.error);
+    }
 
-    const onMove = (ev) => {
-      const delta = ev.clientX - startX;
-      const width = direction === 'left' ? startWidth + delta : startWidth - delta;
-      setPanelWidth(panelId, width);
-    };
-    const onUp = () => {
-      resizer.classList.remove('resizing');
-      document.body.classList.remove('resizing-panels');
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-      rpc('update_config', { [configKey]: Math.round(panel.getBoundingClientRect().width) }).catch(console.error);
-    };
+    function initPanelResizer(resizerId, panelId, configKey, direction) {
+      const resizer = document.getElementById(resizerId);
+      const panel = document.getElementById(panelId);
+      resizer.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startWidth = panel.getBoundingClientRect().width;
+        resizer.classList.add('resizing');
+        document.body.classList.add('resizing-panels');
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  });
-}
+        const onMove = (ev) => {
+          const delta = ev.clientX - startX;
+          const width = direction === 'left' ? startWidth + delta : startWidth - delta;
+          setPanelWidth(panelId, width);
+        };
+        const onUp = () => {
+          resizer.classList.remove('resizing');
+          document.body.classList.remove('resizing-panels');
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+          rpc('update_config', { [configKey]: Math.round(panel.getBoundingClientRect().width) }).catch(console.error);
+        };
 
-initPanelResizer('session-resizer', 'session-sidebar', 'sessionPanelWidth', 'left');
-initPanelResizer('preset-resizer', 'preset-panel', 'presetPanelWidth', 'right');
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    }
 
-// ============================================================
-// Event Listeners
-// ============================================================
-document.getElementById('device-select').addEventListener('change', function() {
-  rpc('update_config', { lastDevicePath: this.value || null }).catch(console.error);
-  updateConnectionUI();
-});
-['baudrate-select','databits-select','parity-select','stopbits-select','flowctrl-select'].forEach(id => {
-  document.getElementById(id).addEventListener('change', function() {
-    const key = id.replace('-select','').replace('baudrate','baudRate').replace('databits','dataBits').replace('stopbits','stopBits').replace('flowctrl','flowControl');
-    rpc('update_config', { [key]: isNaN(this.value) ? this.value : parseInt(this.value) }).catch(console.error);
-  });
-});
-document.getElementById('auto-connect').addEventListener('change', function() { rpc('update_config', { autoConnect: this.checked }).catch(console.error); });
-document.getElementById('send-crlf').addEventListener('change', function() { rpc('update_config', { sendAppendCRLF: this.checked }).catch(console.error); });
-document.getElementById('local-echo').addEventListener('change', function() { rpc('update_config', { localEcho: this.checked }).catch(console.error); });
-document.getElementById('receive-mixed').addEventListener('change', function() {
-  rpc('update_config', { receiveShowMixed: this.checked }).then(() => { document.getElementById('receive-log').innerHTML=''; renderLogs(); }).catch(console.error);
-});
-document.getElementById('auto-scroll').addEventListener('change', function() { rpc('update_config', { receiveAutoScroll: this.checked }).catch(console.error); });
-document.getElementById('show-timestamp').addEventListener('change', function() {
-  rpc('update_config', { receiveShowTimestamp: this.checked }).then(() => { document.getElementById('receive-log').innerHTML=''; renderLogs(); }).catch(console.error);
-});
-document.getElementById('send-input').addEventListener('input', debounce(function() {
-  rpc('update_config', { sendInputText: this.value }).catch(console.error);
-}, 200));
-document.querySelectorAll('#receive-mode button').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('#receive-mode button').forEach(b=>b.classList.remove('active'));
-    this.classList.add('active');
-    rpc('update_config', { receiveDisplayMode: this.dataset.mode }).then(() => { document.getElementById('receive-log').innerHTML=''; renderLogs(); }).catch(console.error);
-  });
-});
-document.querySelectorAll('#send-mode button').forEach(btn => {
-  btn.addEventListener('click', function() {
-    document.querySelectorAll('#send-mode button').forEach(b=>b.classList.remove('active'));
-    this.classList.add('active');
-    rpc('update_config', { sendMode: this.dataset.mode }).catch(console.error);
-  });
-});
+    initPanelResizer('session-resizer', 'session-sidebar', 'sessionPanelWidth', 'left');
+    initPanelResizer('preset-resizer', 'preset-panel', 'presetPanelWidth', 'right');
 
-// ============================================================
-// Keyboard Shortcuts
-// ============================================================
-document.addEventListener('keydown', function(e) {
-  const mod = e.metaKey || e.ctrlKey;
-  const shift = e.shiftKey;
-  if (mod && !shift && e.key === 'o') { e.preventDefault(); if (!state.serialOpen) toggleConnect(); }
-  if (mod && !shift && e.key === 'd') { e.preventDefault(); if (state.serialOpen) toggleConnect(); }
-  if (mod && !shift && e.key === 'Enter') { e.preventDefault(); sendData(); }
-  if (mod && !shift && e.key === 's') { e.preventDefault(); rpc('save_session').then(()=>toast('已保存','success')).catch(console.error); }
-  if (mod && shift && e.key === 'P') { e.preventDefault(); togglePresetSidebar(); }
-  if (mod && shift && e.key === 'S') { e.preventDefault(); toggleSessionSidebar(); }
-  if (mod && !shift && e.key >= '1' && e.key <= '9') {
-    e.preventDefault();
-    for (const g of state.presets||[]) { const cmd = g.commands.find(c=>c.hotkey===parseInt(e.key)); if (cmd) { sendPreset(cmd); break; } }
-  }
-});
+    // ============================================================
+    // Event Listeners
+    // ============================================================
+    document.getElementById('device-select').addEventListener('change', function () {
+      rpc('update_config', { lastDevicePath: this.value || null }).catch(console.error);
+      updateConnectionUI();
+    });
+    ['baudrate-select', 'databits-select', 'parity-select', 'stopbits-select', 'flowctrl-select'].forEach(id => {
+      document.getElementById(id).addEventListener('change', function () {
+        const key = id.replace('-select', '').replace('baudrate', 'baudRate').replace('databits', 'dataBits').replace('stopbits', 'stopBits').replace('flowctrl', 'flowControl');
+        rpc('update_config', { [key]: isNaN(this.value) ? this.value : parseInt(this.value) }).catch(console.error);
+      });
+    });
+    document.getElementById('auto-connect').addEventListener('change', function () { rpc('update_config', { autoConnect: this.checked }).catch(console.error); });
+    document.getElementById('send-crlf').addEventListener('change', function () { rpc('update_config', { sendAppendCRLF: this.checked }).catch(console.error); });
+    document.getElementById('local-echo').addEventListener('change', function () { rpc('update_config', { localEcho: this.checked }).catch(console.error); });
+    document.getElementById('receive-mixed').addEventListener('change', function () {
+      rpc('update_config', { receiveShowMixed: this.checked }).then(() => { document.getElementById('receive-log').innerHTML = ''; renderLogs(); }).catch(console.error);
+    });
+    document.getElementById('auto-scroll').addEventListener('change', function () { rpc('update_config', { receiveAutoScroll: this.checked }).catch(console.error); });
+    document.getElementById('show-timestamp').addEventListener('change', function () {
+      rpc('update_config', { receiveShowTimestamp: this.checked }).then(() => { document.getElementById('receive-log').innerHTML = ''; renderLogs(); }).catch(console.error);
+    });
+    document.getElementById('send-input').addEventListener('input', debounce(function () {
+      rpc('update_config', { sendInputText: this.value }).catch(console.error);
+    }, 200));
+    document.querySelectorAll('#receive-mode button').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('#receive-mode button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        rpc('update_config', { receiveDisplayMode: this.dataset.mode }).then(() => { document.getElementById('receive-log').innerHTML = ''; renderLogs(); }).catch(console.error);
+      });
+    });
+    document.querySelectorAll('#send-mode button').forEach(btn => {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('#send-mode button').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        rpc('update_config', { sendMode: this.dataset.mode }).catch(console.error);
+      });
+    });
 
-// ============================================================
-// Helpers
-// ============================================================
-function escHtml(s) { if(!s)return''; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function debounce(fn,ms) { let t; return function(...a){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a),ms); }; }
+    // ============================================================
+    // Keyboard Shortcuts
+    // ============================================================
+    document.addEventListener('keydown', function (e) {
+      const mod = e.metaKey || e.ctrlKey;
+      const shift = e.shiftKey;
+      if (mod && !shift && e.key === 'o') { e.preventDefault(); if (!state.serialOpen) toggleConnect(); }
+      if (mod && !shift && e.key === 'd') { e.preventDefault(); if (state.serialOpen) toggleConnect(); }
+      if (mod && !shift && e.key === 'Enter') { e.preventDefault(); sendData(); }
+      if (mod && !shift && e.key === 's') { e.preventDefault(); rpc('save_session').then(() => toast('已保存', 'success')).catch(console.error); }
+      if (mod && shift && e.key === 'P') { e.preventDefault(); togglePresetSidebar(); }
+      if (mod && shift && e.key === 'S') { e.preventDefault(); toggleSessionSidebar(); }
+      if (mod && !shift && e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        for (const g of state.presets || []) { const cmd = g.commands.find(c => c.hotkey === parseInt(e.key)); if (cmd) { sendPreset(cmd); break; } }
+      }
+    });
 
-// ============================================================
-// Startup
-// ============================================================
-connect();
-setInterval(refreshDevices, 3000);
-</script>
+    // ============================================================
+    // Helpers
+    // ============================================================
+    function escHtml(s) { if (!s) return ''; return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function debounce(fn, ms) { let t; return function (...a) { clearTimeout(t); t = setTimeout(() => fn.apply(this, a), ms); }; }
+
+    // ============================================================
+    // Startup
+    // ============================================================
+    connect();
+    setInterval(refreshDevices, 3000);
+  </script>
 </body>
+
 </html>

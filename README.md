@@ -1,4 +1,4 @@
-# Serial Tool
+# Serialport Tool
 
 > 串口调试助手 Web 版 - 基于 Bun.js + serialport，浏览器端操作串口
 
